@@ -707,7 +707,7 @@ void HelloVulkan::animationInstances()
 
 void HelloVulkan::animationObject()
 {
-    const uint32_t sphereId = 2;
+    const uint32_t sphereId = 1;//2;
     ObjModel& model = m_objModel[sphereId];
 
     updateCompDescriptors(model.vertexBuffer);

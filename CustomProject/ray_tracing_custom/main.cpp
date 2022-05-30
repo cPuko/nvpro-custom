@@ -168,6 +168,11 @@ int main(int argc, char** argv)
   helloVk.createPostPipeline();
   helloVk.updatePostDescriptorSet();
 
+  //animation
+  helloVk.createCompDescriptors();
+  helloVk.createCompPipelines();
+
+
   nvmath::vec4f clearColor = nvmath::vec4f(1, 1, 1, 1.00f);
 
 
@@ -197,6 +202,9 @@ int main(int argc, char** argv)
       ImGuiH::Control::Info("", "", "(F10) Toggle Pane", ImGuiH::Control::Flags::Disabled);
       ImGuiH::Panel::End();
     }
+
+    helloVk.animationObject();
+    helloVk.animationInstances();
 
     // Start rendering the scene
     helloVk.prepareFrame();
