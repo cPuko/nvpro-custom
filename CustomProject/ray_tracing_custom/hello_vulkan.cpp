@@ -152,6 +152,11 @@ void HelloVulkan::updateDescriptorSet()
   writes.emplace_back(m_descSetLayoutBind.makeWrite(m_descSet, eTlas, &descASInfo));
 
 
+  //todo rt????
+  //std::vector<VkWriteDescriptorSet> writes;
+  //writes.emplace_back(m_rtDescSetLayoutBind.makeWrite(m_rtDescSet, RtxBindings::eTlas, &descASInfo));
+  //writes.emplace_back(m_rtDescSetLayoutBind.makeWrite(m_rtDescSet, RtxBindings::eOutImage, &imageInfo));
+
   // Writing the information
   vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 }
@@ -656,6 +661,8 @@ void HelloVulkan::createBottomLevelAS()
     // We could add more geometry in each BLAS, but we add only one for now
     allBlas.emplace_back(blas);
   }
+
+  //VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_BUILD_BIT_KHR로 변환 차이점 분석
   m_rtBuilder.buildBlas(allBlas, VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR);
 }
 
@@ -664,8 +671,7 @@ void HelloVulkan::createBottomLevelAS()
 //
 void HelloVulkan::createTopLevelAS()
 {
-  std::vector<VkAccelerationStructureInstanceKHR> tlas;
-  tlas.reserve(m_instances.size());
+  //tlas.reserve(m_instances.size());
   for(const HelloVulkan::ObjInstance& inst : m_instances)
   {
     VkAccelerationStructureInstanceKHR rayInst{};
@@ -675,7 +681,88 @@ void HelloVulkan::createTopLevelAS()
     rayInst.flags                          = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
     rayInst.mask                           = 0xFF;       //  Only be hit if rayMask & instance.mask != 0
     rayInst.instanceShaderBindingTableRecordOffset = 0;  // We will use the same hit group for all objects
-    tlas.emplace_back(rayInst);
+    m_tlas.emplace_back(rayInst);
   }
-  m_rtBuilder.buildTlas(tlas, VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR);
+  m_rqflags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
+  m_rtBuilder.buildTlas(m_tlas, m_rqflags);
+}
+
+void HelloVulkan::animationInstances()
+{
+    //const auto  nbWuson = static_cast<int32_t>(m_instances.size() - 2);  // All except sphere and plane
+    //const float deltaAngle = 6.28318530718f / static_cast<float>(nbWuson);
+    //const float wusonLength = 3.f;
+    //const float radius = wusonLength / (2.f * sin(deltaAngle / 2.0f));
+
+    auto& transform = m_instances[0].transform;
+
+    VkAccelerationStructureInstanceKHR& tinst = m_tlas[0];
+    tinst.transform = nvvk::toTransformMatrixKHR(transform);
+    
+
+    // Updating the top level acceleration structure
+    
+    m_rtBuilder.buildTlas(m_tlas, m_rqflags, true);
+}
+
+void HelloVulkan::animationObject()
+{
+    const uint32_t sphereId = 2;
+    ObjModel& model = m_objModel[sphereId];
+
+    updateCompDescriptors(model.vertexBuffer);
+
+    nvvk::CommandPool genCmdBuf(m_device, m_graphicsQueueIndex);
+    VkCommandBuffer   cmdBuf = genCmdBuf.createCommandBuffer();
+
+    vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_compPipeline);
+    vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_compPipelineLayout, 0, 1, &m_compDescSet, 0, nullptr);
+    vkCmdPushConstants(cmdBuf, m_compPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(float), &time);
+    vkCmdDispatch(cmdBuf, model.nbVertices, 1, 1);
+
+    genCmdBuf.submitAndWait(cmdBuf);
+    //m_blas 구축 update???
+    //m_rtBuilder.updateBlas(sphereId, m_blas[sphereId], VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_BUILD_BIT_KHR);
+}
+
+void HelloVulkan::createCompDescriptors()
+{
+    m_compDescSetLayoutBind.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT);
+
+    m_compDescSetLayout = m_compDescSetLayoutBind.createLayout(m_device);
+    m_compDescPool = m_compDescSetLayoutBind.createPool(m_device, 1);
+    m_compDescSet = nvvk::allocateDescriptorSet(m_device, m_compDescPool, m_compDescSetLayout);
+}
+
+void HelloVulkan::updateCompDescriptors(nvvk::Buffer& vertex)
+{
+    std::vector<VkWriteDescriptorSet> writes;
+    VkDescriptorBufferInfo            dbiUnif{ vertex.buffer, 0, VK_WHOLE_SIZE };
+    writes.emplace_back(m_compDescSetLayoutBind.makeWrite(m_compDescSet, 0, &dbiUnif));
+    vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
+}
+
+void HelloVulkan::createCompPipelines()
+{
+    // pushing time
+    VkPushConstantRange push_constants = { VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(float) };
+
+    VkPipelineLayoutCreateInfo createInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+    createInfo.setLayoutCount = 1;
+    createInfo.pSetLayouts = &m_compDescSetLayout;
+    createInfo.pushConstantRangeCount = 1;
+    createInfo.pPushConstantRanges = &push_constants;
+    vkCreatePipelineLayout(m_device, &createInfo, nullptr, &m_compPipelineLayout);
+
+
+    VkComputePipelineCreateInfo computePipelineCreateInfo{ VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };
+    computePipelineCreateInfo.layout = m_compPipelineLayout;
+
+    computePipelineCreateInfo.stage =
+        nvvk::createShaderStageInfo(m_device, nvh::loadFile("spv/anim.comp.spv", true, defaultSearchPaths, true),
+            VK_SHADER_STAGE_COMPUTE_BIT);
+
+    vkCreateComputePipelines(m_device, {}, 1, &computePipelineCreateInfo, nullptr, &m_compPipeline);
+
+    vkDestroyShaderModule(m_device, computePipelineCreateInfo.stage.module, nullptr);
 }

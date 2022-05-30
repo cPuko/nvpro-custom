@@ -131,4 +131,23 @@ public:
 
   VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_rtProperties{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR};
   nvvk::RaytracingBuilderKHR                      m_rtBuilder;
+
+  // #VK_animation
+  void animationInstances();
+  void animationObject();
+
+  // #VK_compute
+  void createCompDescriptors();
+  void updateCompDescriptors(nvvk::Buffer& vertex);
+  void createCompPipelines();
+
+  nvvk::DescriptorSetBindings m_compDescSetLayoutBind;
+  VkDescriptorPool            m_compDescPool;
+  VkDescriptorSetLayout       m_compDescSetLayout;
+  VkDescriptorSet             m_compDescSet;
+  VkPipeline                  m_compPipeline;
+  VkPipelineLayout            m_compPipelineLayout;
+
+  std::vector<VkAccelerationStructureInstanceKHR> m_tlas;
+  VkBuildAccelerationStructureFlagsKHR m_rqflags;
 };
