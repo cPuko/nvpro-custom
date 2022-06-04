@@ -39,6 +39,6 @@ pushc;
 void main()
 {
   Vertex v0 = vertices.v[gl_GlobalInvocationID.x];
-  v0.pos.y             = v0.pos.y + iTime;
+  v0.pos.y             = v0.pos.y + pushc.iTime;
   vertices.v[gl_GlobalInvocationID.x] = v0;
 }
