@@ -44,7 +44,8 @@ START_BINDING(SceneBindings)
   eGlobals  = 0,  // Global uniform containing camera matrices
   eObjDescs = 1,  // Access to the object descriptions
   eTextures = 2,  // Access to textures
-  eTlas     = 3   // Top-level acceleration structure
+  eTlas     = 3,   // Top-level acceleration structure
+  eCollision = 4   // Access to Collision Trigger
 END_BINDING();
 // clang-format on
 

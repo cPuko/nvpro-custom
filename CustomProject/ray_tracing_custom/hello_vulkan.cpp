@@ -729,9 +729,36 @@ void HelloVulkan::createCompDescriptors()
 {
     m_compDescSetLayoutBind.addBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT);
 
+    // The top level acceleration structure
+    m_compDescSetLayoutBind.addBinding(eTlas, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1, VK_SHADER_STAGE_COMPUTE_BIT);
+    m_compDescSetLayoutBind.addBinding(eCollision, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT);
+
     m_compDescSetLayout = m_compDescSetLayoutBind.createLayout(m_device);
     m_compDescPool = m_compDescSetLayoutBind.createPool(m_device, 1);
     m_compDescSet = nvvk::allocateDescriptorSet(m_device, m_compDescPool, m_compDescSetLayout);
+
+    VkAccelerationStructureKHR                   tlas = m_rtBuilder.getAccelerationStructure();
+    VkWriteDescriptorSetAccelerationStructureKHR descASInfo{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR };
+    descASInfo.accelerationStructureCount = 1;
+    descASInfo.pAccelerationStructures = &tlas;
+
+    //VkDescriptorImageInfo imageInfo{ {}, m_offscreenColor.descriptor.imageView, VK_IMAGE_LAYOUT_GENERAL };
+    VkBufferCreateInfo bufInfo {};
+    bufInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufInfo.size = sizeof(unsigned int);
+    bufInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    bufInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+    VkBuffer compBuf;
+    auto result = vkCreateBuffer(m_device, &bufInfo, nullptr, &compBuf);
+    assert(result == VK_SUCCESS);
+    VkDescriptorBufferInfo compBufInfo{};
+    compBufInfo.buffer = compBuf;
+    compBufInfo.range = sizeof(compBuf);
+
+    std::vector<VkWriteDescriptorSet> writes;
+    writes.emplace_back(m_compDescSetLayoutBind.makeWrite(m_compDescSet, SceneBindings::eTlas, &descASInfo));
+    writes.emplace_back(m_compDescSetLayoutBind.makeWrite(m_compDescSet, SceneBindings::eCollision, &compBufInfo));
+    vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 }
 
 void HelloVulkan::updateCompDescriptors(nvvk::Buffer& vertex)
