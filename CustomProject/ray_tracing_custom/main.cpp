@@ -174,7 +174,7 @@ int main(int argc, char** argv)
 
 
   nvmath::vec4f clearColor = nvmath::vec4f(1, 1, 1, 1.00f);
-
+  auto          start = std::chrono::system_clock::now();
 
   helloVk.setupGlfwCallbacks(window);
   ImGui_ImplGlfw_InitForVulkan(window, true);
@@ -203,8 +203,10 @@ int main(int argc, char** argv)
       ImGuiH::Panel::End();
     }
 
-    helloVk.animationObject();
-    helloVk.animationInstances();
+    // #VK_animation
+    std::chrono::duration<float> diff = std::chrono::system_clock::now() - start;
+    helloVk.animationObject(diff.count());
+    helloVk.animationInstances(diff.count());
 
     // Start rendering the scene
     helloVk.prepareFrame();

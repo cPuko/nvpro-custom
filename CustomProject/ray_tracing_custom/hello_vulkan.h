@@ -133,8 +133,8 @@ public:
   nvvk::RaytracingBuilderKHR                      m_rtBuilder;
 
   // #VK_animation
-  void animationInstances();
-  void animationObject();
+  void animationInstances(float time);
+  void animationObject(float time);
 
   // #VK_compute
   void createCompDescriptors();
@@ -149,5 +149,6 @@ public:
   VkPipelineLayout            m_compPipelineLayout;
 
   std::vector<VkAccelerationStructureInstanceKHR> m_tlas;
+  std::vector<nvvk::RaytracingBuilderKHR::BlasInput> m_blas;
   VkBuildAccelerationStructureFlagsKHR m_rqflags;
 };

@@ -651,19 +651,17 @@ auto HelloVulkan::objectToVkGeometryKHR(const ObjModel& model)
 //
 void HelloVulkan::createBottomLevelAS()
 {
-  // BLAS - Storing each primitive in a geometry
-  std::vector<nvvk::RaytracingBuilderKHR::BlasInput> allBlas;
-  allBlas.reserve(m_objModel.size());
+  m_blas.reserve(m_objModel.size());
   for(const auto& obj : m_objModel)
   {
     auto blas = objectToVkGeometryKHR(obj);
 
     // We could add more geometry in each BLAS, but we add only one for now
-    allBlas.emplace_back(blas);
+    m_blas.emplace_back(blas);
   }
 
   //VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_BUILD_BIT_KHR로 변환 차이점 분석
-  m_rtBuilder.buildBlas(allBlas, VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR);
+  m_rtBuilder.buildBlas(m_blas, VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_BUILD_BIT_KHR);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -687,25 +685,23 @@ void HelloVulkan::createTopLevelAS()
   m_rtBuilder.buildTlas(m_tlas, m_rqflags);
 }
 
-void HelloVulkan::animationInstances()
+void HelloVulkan::animationInstances(float time)
 {
-    //const auto  nbWuson = static_cast<int32_t>(m_instances.size() - 2);  // All except sphere and plane
-    //const float deltaAngle = 6.28318530718f / static_cast<float>(nbWuson);
-    //const float wusonLength = 3.f;
-    //const float radius = wusonLength / (2.f * sin(deltaAngle / 2.0f));
+    const auto  nbWuson = static_cast<int32_t>(m_instances.size() - 2);  // All except sphere and plane
+    const float deltaAngle = 6.28318530718f / static_cast<float>(nbWuson);
+    const float wusonLength = 3.f;
+    const float radius = wusonLength / (2.f * sin(deltaAngle / 2.0f));
 
-    auto& transform = m_instances[0].transform;
+    auto& transform = m_instances[0].transform ;
 
     VkAccelerationStructureInstanceKHR& tinst = m_tlas[0];
     tinst.transform = nvvk::toTransformMatrixKHR(transform);
     
-
     // Updating the top level acceleration structure
-    
     m_rtBuilder.buildTlas(m_tlas, m_rqflags, true);
 }
 
-void HelloVulkan::animationObject()
+void HelloVulkan::animationObject(float time)
 {
     const uint32_t sphereId = 1;//2;
     ObjModel& model = m_objModel[sphereId];
@@ -721,8 +717,7 @@ void HelloVulkan::animationObject()
     vkCmdDispatch(cmdBuf, model.nbVertices, 1, 1);
 
     genCmdBuf.submitAndWait(cmdBuf);
-    //m_blas 구축 update???
-    //m_rtBuilder.updateBlas(sphereId, m_blas[sphereId], VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_BUILD_BIT_KHR);
+    m_rtBuilder.updateBlas(sphereId, m_blas[sphereId], VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_BUILD_BIT_KHR);
 }
 
 void HelloVulkan::createCompDescriptors()
@@ -751,6 +746,7 @@ void HelloVulkan::createCompDescriptors()
     VkBuffer compBuf;
     auto result = vkCreateBuffer(m_device, &bufInfo, nullptr, &compBuf);
     assert(result == VK_SUCCESS);
+
     VkDescriptorBufferInfo compBufInfo{};
     compBufInfo.buffer = compBuf;
     compBufInfo.range = sizeof(compBuf);
