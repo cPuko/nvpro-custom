@@ -19,6 +19,10 @@
 
 
 #include <sstream>
+#include <random>
+#include <ctime>
+#include <iostream>
+#include <functional>
 
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -39,6 +43,13 @@
 
 extern std::vector<std::string> defaultSearchPaths;
 
+
+float HelloVulkan::getRandomFloat(float min, float max)
+{
+    std::mt19937 rd((unsigned int)time(NULL));       // MT19937 난수 엔진
+    std::uniform_real_distribution<float> rdDist{ min, max };
+    return rdDist(rd);
+}
 
 //--------------------------------------------------------------------------------------------------
 // Keep the handle on the device
@@ -194,6 +205,16 @@ void HelloVulkan::createGraphicsPipeline()
 
   m_graphicsPipeline = gpb.createPipeline();
   m_debug.setObjectName(m_graphicsPipeline, "Graphics");
+}
+
+void HelloVulkan::makeInstance(uint32_t objectId, uint32_t count)
+{
+    
+    nvmath::mat4f identity{ 1 };
+    for (int i = 0; i < count; i++)
+    {
+        this->m_instances.push_back({ identity, objectId });
+    }
 }
 
 //--------------------------------------------------------------------------------------------------

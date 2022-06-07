@@ -39,10 +39,13 @@
 class HelloVulkan : public nvvk::AppBaseVk
 {
 public:
+  float getRandomFloat(float min, float max);
+
   void setup(const VkInstance& instance, const VkDevice& device, const VkPhysicalDevice& physicalDevice, uint32_t queueFamily) override;
   void createDescriptorSetLayout();
   void createGraphicsPipeline();
   void loadModel(const std::string& filename, nvmath::mat4f transform = nvmath::mat4f(1));
+  void makeInstance(uint32_t objectId, uint32_t count);
   void updateDescriptorSet();
   void createUniformBuffer();
   void createObjDescriptionBuffer();
@@ -83,6 +86,7 @@ public:
   std::vector<ObjModel>    m_objModel;   // Model on host
   std::vector<ObjDesc>     m_objDesc;    // Model description for device access
   std::vector<ObjInstance> m_instances;  // Scene model instances
+  //std::vector<int>         m_collisionCheck;
 
 
   // Graphic pipeline
