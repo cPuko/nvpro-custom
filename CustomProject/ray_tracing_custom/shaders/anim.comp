@@ -22,6 +22,10 @@
 #extension GL_EXT_scalar_block_layout : enable
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+
+#extension GL_EXT_ray_tracing : enable
+#extension GL_EXT_ray_query : enable
+
 #include "wavefront.glsl"
 
 layout(binding = 0, scalar) buffer Vertices_
@@ -36,9 +40,14 @@ layout(push_constant) uniform shaderInformation
 }
 pushc;
 
+layout(binding = eObjDescs, scalar) buffer ObjDesc_ { ObjDesc i[]; } objDesc;
+layout(binding = eTlas) uniform accelerationStructureEXT topLevelAS;
+layout(binding = eCollision) buffer collision { int check[]; } collisionCheck;
+
 void main()
 {
   Vertex v0 = vertices.v[gl_GlobalInvocationID.x];
-  v0.pos.y             = v0.pos.y + pushc.iTime;
+  v0.pos.y             = v0.pos.y;// + collisionCheck;// + pushc.iTime	
+  
   vertices.v[gl_GlobalInvocationID.x] = v0;
 }
