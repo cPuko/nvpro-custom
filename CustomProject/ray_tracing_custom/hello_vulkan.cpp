@@ -46,8 +46,9 @@ extern std::vector<std::string> defaultSearchPaths;
 
 float HelloVulkan::getRandomFloat(float min, float max)
 {
-    std::mt19937 rd((unsigned int)time(NULL));       // MT19937 난수 엔진
-    std::uniform_real_distribution<float> rdDist{ min, max };
+    std::random_device rd;
+    std::mt19937 gen(rd());       // MT19937 난수 엔진
+    std::uniform_real_distribution<float> rdDist(min, max);
     return rdDist(rd);
 }
 
@@ -208,12 +209,12 @@ void HelloVulkan::createGraphicsPipeline()
 }
 
 void HelloVulkan::makeInstance(uint32_t objectId, uint32_t count)
-{
-    
-    nvmath::mat4f identity{ 1 };
+{   
+    //nvmath::mat4f identity{ 1 };
     for (int i = 0; i < count; i++)
     {
-        this->m_instances.push_back({ identity, objectId });
+        nvmath::mat4f transform = nvmath::translation_mat4(getRandomFloat(-10.0f, 10.0f), getRandomFloat(0.0f, 10.0f), getRandomFloat(-10.0f, 10.0f));
+        this->m_instances.push_back({ transform, objectId });
     }
 }
 
@@ -279,6 +280,70 @@ void HelloVulkan::loadModel(const std::string& filename, nvmath::mat4f transform
   m_objDesc.emplace_back(desc);
 }
 
+
+//--------------------------------------------------------------------------------------------------
+// Loading the OBJ file and setting up all buffers
+//
+void HelloVulkan::loadSphere(const std::string& filename, nvmath::mat4f transform)
+{
+    LOGI("Loading File:  %s \n", filename.c_str());
+    ObjLoader loader;
+    loader.loadModel(filename);
+
+    // Converting from Srgb to linear
+    for (auto& m : loader.m_materials)
+    {
+        m.ambient = nvmath::pow(m.ambient, 2.2f);
+        m.diffuse = nvmath::pow(m.diffuse, 2.2f);
+        m.specular = nvmath::pow(m.specular, 2.2f);
+    }
+
+    ObjModel model;
+    model.nbIndices = static_cast<uint32_t>(loader.m_indices.size());
+    model.nbVertices = static_cast<uint32_t>(loader.m_vertices.size());
+
+    // Create the buffers on Device and copy vertices, indices and materials
+    nvvk::CommandPool  cmdBufGet(m_device, m_graphicsQueueIndex);
+    VkCommandBuffer    cmdBuf = cmdBufGet.createCommandBuffer();
+    VkBufferUsageFlags flag = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    VkBufferUsageFlags rayTracingFlags =  // used also for building acceleration structures
+        flag | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    model.vertexBuffer = m_alloc.createBuffer(cmdBuf, loader.m_vertices, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | rayTracingFlags);
+    model.indexBuffer = m_alloc.createBuffer(cmdBuf, loader.m_indices, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | rayTracingFlags);
+    model.matColorBuffer = m_alloc.createBuffer(cmdBuf, loader.m_materials, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | flag);
+    model.matIndexBuffer = m_alloc.createBuffer(cmdBuf, loader.m_matIndx, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | flag);
+    // Creates all textures found and find the offset for this model
+    auto txtOffset = static_cast<uint32_t>(m_textures.size());
+    createTextureImages(cmdBuf, loader.m_textures);
+    cmdBufGet.submitAndWait(cmdBuf);
+    m_alloc.finalizeAndReleaseStaging();
+
+    std::string objNb = std::to_string(m_objModel.size());
+    m_debug.setObjectName(model.vertexBuffer.buffer, (std::string("vertex_" + objNb)));
+    m_debug.setObjectName(model.indexBuffer.buffer, (std::string("index_" + objNb)));
+    m_debug.setObjectName(model.matColorBuffer.buffer, (std::string("mat_" + objNb)));
+    m_debug.setObjectName(model.matIndexBuffer.buffer, (std::string("matIdx_" + objNb)));
+
+    // Keeping transformation matrix of the instance
+    ObjInstance instance;
+    instance.transform = transform;
+    instance.objIndex = static_cast<uint32_t>(m_objModel.size());
+    m_instances.push_back(instance);
+
+    makeInstance(1, 10);
+
+    // Creating information for device access
+    ObjDesc desc;
+    desc.txtOffset = txtOffset;
+    desc.vertexAddress = nvvk::getBufferDeviceAddress(m_device, model.vertexBuffer.buffer);
+    desc.indexAddress = nvvk::getBufferDeviceAddress(m_device, model.indexBuffer.buffer);
+    desc.materialAddress = nvvk::getBufferDeviceAddress(m_device, model.matColorBuffer.buffer);
+    desc.materialIndexAddress = nvvk::getBufferDeviceAddress(m_device, model.matIndexBuffer.buffer);
+
+    // Keeping the obj host model and device description
+    m_objModel.emplace_back(model);
+    m_objDesc.emplace_back(desc);
+}
 
 //--------------------------------------------------------------------------------------------------
 // Creating the uniform buffer holding the camera matrices
