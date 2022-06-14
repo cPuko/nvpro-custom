@@ -47,7 +47,7 @@ layout(binding = eCollision) buffer collision { int check[]; } collisionCheck;
 void main()
 {
   Vertex v0 = vertices.v[gl_GlobalInvocationID.x];
-  v0.pos.y             = v0.pos.y + pushc.iTime / 100.0f;
+  v0.pos.y             = v0.pos.y + pushc.iTime / 100000.0f;
   
   vertices.v[gl_GlobalInvocationID.x] = v0;
 }

@@ -47,7 +47,7 @@ public:
   void createDescriptorSetLayout();
   void createGraphicsPipeline();
   void loadModel(const std::string& filename, nvmath::mat4f transform = nvmath::mat4f(1));
-  void makeInstance(uint32_t objectId, uint32_t count);
+  void makeInstance(uint32_t objectId);
   void updateDescriptorSet();
   void createUniformBuffer();
   void createObjDescriptionBuffer();
@@ -159,4 +159,6 @@ public:
   VkBuildAccelerationStructureFlagsKHR m_rqflags;
 
   std::map<std::string, int> m_DicObjs;
+
+  uint getObjectKey(std::string key);
 };

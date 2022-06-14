@@ -210,14 +210,13 @@ void HelloVulkan::createGraphicsPipeline()
   m_debug.setObjectName(m_graphicsPipeline, "Graphics");
 }
 
-void HelloVulkan::makeInstance(uint32_t objectId, uint32_t count)
+void HelloVulkan::makeInstance(uint32_t objectId)
 {   
-    for (int i = 0; i < count; i++)
-    {
-        //to do. modify transform to direction
-        nvmath::mat4f transform = nvmath::translation_mat4(getRandomFloat(-10.0f, 10.0f), getRandomFloat(0.0f, 10.0f), getRandomFloat(-10.0f, 10.0f));
-        this->m_instances.push_back({ transform, objectId });
-    }
+    //to do. modify transform to direction
+    if (objectId == 0)
+        return;
+    nvmath::mat4f transform = nvmath::translation_mat4(getRandomFloat(-3.0f, 3.0f), getRandomFloat(0.0f, 3.0f), getRandomFloat(-3.0f, 3.0f));
+    this->m_instances.push_back({ transform, objectId });
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -825,4 +824,13 @@ void HelloVulkan::createCompPipelines()
     vkCreateComputePipelines(m_device, {}, 1, &computePipelineCreateInfo, nullptr, &m_compPipeline);
 
     vkDestroyShaderModule(m_device, computePipelineCreateInfo.stage.module, nullptr);
+}
+
+uint HelloVulkan::getObjectKey(std::string key)
+{
+    for(auto it = m_DicObjs.begin(); it != m_DicObjs.end(); it++)
+        return m_DicObjs.find(key)->second;
+    return 0;
+
+    
 }

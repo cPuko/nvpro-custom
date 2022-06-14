@@ -218,7 +218,8 @@ int main(int argc, char** argv)
     std::chrono::milliseconds ms{ 200 };
     if (frameRate > ms) 
     {
-        printf("%d\n", std::chrono::duration_cast<std::chrono::milliseconds>(frameRate));
+        uint objId = helloVk.getObjectKey("sphere");
+        helloVk.makeInstance(objId);
         frameRate = std::chrono::milliseconds(0);
     }
     frameRate += std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - lastFrame);
