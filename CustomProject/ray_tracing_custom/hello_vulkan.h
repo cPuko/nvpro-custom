@@ -47,7 +47,6 @@ public:
   void createDescriptorSetLayout();
   void createGraphicsPipeline();
   void loadModel(const std::string& filename, nvmath::mat4f transform = nvmath::mat4f(1));
-  void loadSphere(const std::string& filename, nvmath::mat4f transform = nvmath::mat4f(1));
   void makeInstance(uint32_t objectId, uint32_t count);
   void updateDescriptorSet();
   void createUniformBuffer();

@@ -110,5 +110,7 @@ struct WaveFrontMaterial  // See ObjLoader, copy of MaterialObj, could be compre
   int   textureId;
 };
 
+#define MAX_PARTICLE 100
+
 
 #endif
