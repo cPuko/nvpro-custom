@@ -41,7 +41,7 @@
 #include "nvvk/shaders_vk.hpp"
 #include "nvvk/buffers_vk.hpp"
 
-#include <stdlib.h>
+#include <iostream>
 
 extern std::vector<std::string> defaultSearchPaths;
 

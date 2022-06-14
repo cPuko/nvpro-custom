@@ -34,6 +34,7 @@
 #include "nvpsystem.hpp"
 #include "nvvk/commands_vk.hpp"
 #include "nvvk/context_vk.hpp"
+#include <stdlib.h>
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -180,6 +181,8 @@ int main(int argc, char** argv)
   helloVk.setupGlfwCallbacks(window);
   ImGui_ImplGlfw_InitForVulkan(window, true);
 
+  std::chrono::system_clock::time_point lastFrame;
+  std::chrono::milliseconds frameRate(0);
   // Main loop
   while(!glfwWindowShouldClose(window))
   {
@@ -205,10 +208,25 @@ int main(int argc, char** argv)
     }
 
     // #VK_animation
-    std::chrono::duration<float> diff = std::chrono::system_clock::now() - start;
+    /*auto now = std::chrono::system_clock::now();
+    std::chrono::duration<double, std::milli> delta = now - lastFrame;
+    lastFrame = now;*/
+
+    //std::this_thread::sleep_until(nextFrame);
+
+    std::chrono::duration<double, std::milli> diff = std::chrono::system_clock::now()- start;
+    std::chrono::milliseconds ms{ 200 };
+    if (frameRate > ms) 
+    {
+        printf("%d\n", std::chrono::duration_cast<std::chrono::milliseconds>(frameRate));
+        frameRate = std::chrono::milliseconds(0);
+    }
+    frameRate += std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - lastFrame);
+    lastFrame = std::chrono::system_clock::now();
+
     helloVk.animationObject(diff.count());
     helloVk.animationInstances(diff.count());
-
+    
     // Start rendering the scene
     helloVk.prepareFrame();
 
