@@ -29,6 +29,8 @@
 // #VKRay
 #include "nvvk/raytraceKHR_vk.hpp"
 
+#include <map>
+
 //--------------------------------------------------------------------------------------------------
 // Simple rasterizer of OBJ objects
 // - Each OBJ loaded are stored in an `ObjModel` and referenced by a `ObjInstance`
@@ -156,4 +158,6 @@ public:
   std::vector<VkAccelerationStructureInstanceKHR> m_tlas;
   std::vector<nvvk::RaytracingBuilderKHR::BlasInput> m_blas;
   VkBuildAccelerationStructureFlagsKHR m_rqflags;
+
+  std::map<std::string, int> m_DicObjs;
 };
