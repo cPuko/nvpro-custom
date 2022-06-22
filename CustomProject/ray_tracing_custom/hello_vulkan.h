@@ -30,6 +30,7 @@
 #include "nvvk/raytraceKHR_vk.hpp"
 
 #include <map>
+#include <queue>
 
 //--------------------------------------------------------------------------------------------------
 // Simple rasterizer of OBJ objects
@@ -47,7 +48,6 @@ public:
   void createDescriptorSetLayout();
   void createGraphicsPipeline();
   void loadModel(const std::string& filename, nvmath::mat4f transform = nvmath::mat4f(1));
-  void makeInstance(uint32_t objectId);
   void updateDescriptorSet();
   void createUniformBuffer();
   void createObjDescriptionBuffer();
@@ -72,6 +72,19 @@ public:
   {
     nvmath::mat4f transform;    // Matrix of the instance
     uint32_t      objIndex{0};  // Model index reference
+  };
+
+  class Particle
+  {
+  public:
+      Particle() {
+          modelId = 0;
+          gravity = 0.f;
+      };
+      ~Particle() {};
+      unsigned int modelId;
+      nvmath::vec3f dir;
+      float gravity;
   };
 
 
@@ -161,4 +174,9 @@ public:
   std::map<std::string, int> m_DicObjs;
 
   uint getObjectKey(std::string key);
+
+  void makeParticle(unsigned int objId);
+  std::string getObjNameFromPath(std::string path);
+
+  std::queue<Particle> m_particles;
 };

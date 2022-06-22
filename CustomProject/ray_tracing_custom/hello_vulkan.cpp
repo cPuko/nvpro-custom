@@ -210,14 +210,7 @@ void HelloVulkan::createGraphicsPipeline()
   m_debug.setObjectName(m_graphicsPipeline, "Graphics");
 }
 
-void HelloVulkan::makeInstance(uint32_t objectId)
-{   
-    //to do. modify transform to direction
-    if (objectId == 0)
-        return;
-    nvmath::mat4f transform = nvmath::translation_mat4(getRandomFloat(-3.0f, 3.0f), getRandomFloat(0.0f, 3.0f), getRandomFloat(-3.0f, 3.0f));
-    this->m_instances.push_back({ transform, objectId });
-}
+static uint s_objIndex = 0;
 
 //--------------------------------------------------------------------------------------------------
 // Loading the OBJ file and setting up all buffers
@@ -268,18 +261,7 @@ void HelloVulkan::loadModel(const std::string& filename, nvmath::mat4f transform
     instance.objIndex = static_cast<uint32_t>(m_objModel.size());
     m_instances.push_back(instance);
     
-    static uint s_objIndex = 0;
-    std::string str;
-    std::istringstream ss(filename);
-    while (std::getline(ss, str, '/'))
-    {
-        std::string::size_type idx = str.find(".obj");
-        if (std::string::npos != idx)
-        {
-            std::string objName = str.substr(0,idx);
-            m_DicObjs.insert(std::pair(objName, s_objIndex));
-        }
-    }
+    getObjNameFromPath(filename);
     s_objIndex++;
 
     // Creating information for device access
@@ -295,6 +277,36 @@ void HelloVulkan::loadModel(const std::string& filename, nvmath::mat4f transform
     m_objDesc.emplace_back(desc);
 }
 
+void HelloVulkan::makeParticle(unsigned int objId)
+{
+    if (objId == 0)
+        return;
+    nvmath::mat4f transform = nvmath::translation_mat4(getRandomFloat(-3.0f, 3.0f), getRandomFloat(0.0f, 3.0f), getRandomFloat(-3.0f, 3.0f));
+    this->m_instances.push_back({ transform, objId });
+
+    Particle particle;
+    particle.modelId = objId;
+    particle.gravity = getRandomFloat(5.0f, 10.0f);
+    particle.dir = nvmath::vec3f(getRandomFloat(0.1f, 5.0f), getRandomFloat(0.1f, 5.0f), getRandomFloat(0.1f, 5.0f));
+    m_particles.push(particle);
+}
+
+std::string HelloVulkan::getObjNameFromPath(std::string path)
+{
+    std::string str;
+    std::istringstream ss(path);
+    while (std::getline(ss, str, '/'))
+    {
+        std::string::size_type idx = str.find(".obj");
+        if (std::string::npos != idx)
+        {
+            std::string objName = str.substr(0, idx);
+            m_DicObjs.insert(std::pair(objName, s_objIndex));
+            return str;
+        }
+    }
+    return "";
+}
 //--------------------------------------------------------------------------------------------------
 // Creating the uniform buffer holding the camera matrices
 // - Buffer is host visible

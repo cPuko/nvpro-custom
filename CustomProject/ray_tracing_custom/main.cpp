@@ -151,7 +151,6 @@ int main(int argc, char** argv)
   helloVk.loadModel(nvh::findFile("media/scenes/plane.obj", defaultSearchPaths, true));
   helloVk.loadModel(nvh::findFile("media/scenes/sphere.obj", defaultSearchPaths, true));
 
-
   helloVk.createOffscreenRender();
   helloVk.createDescriptorSetLayout();
   helloVk.createGraphicsPipeline();
@@ -219,7 +218,7 @@ int main(int argc, char** argv)
     if (frameRate > ms) 
     {
         uint objId = helloVk.getObjectKey("sphere");
-        helloVk.makeInstance(objId);
+        helloVk.makeParticle(objId);
         frameRate = std::chrono::milliseconds(0);
     }
     frameRate += std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - lastFrame);
