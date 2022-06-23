@@ -279,16 +279,15 @@ void HelloVulkan::loadModel(const std::string& filename, nvmath::mat4f transform
 
 void HelloVulkan::makeParticle(unsigned int objId)
 {
-    if (objId == 0)
+    if (objId == 0)//floor
         return;
-    nvmath::mat4f transform = nvmath::translation_mat4(getRandomFloat(-3.0f, 3.0f), getRandomFloat(0.0f, 3.0f), getRandomFloat(-3.0f, 3.0f));
-    this->m_instances.push_back({ transform, objId });
-
-    Particle particle;
-    particle.modelId = objId;
-    particle.gravity = getRandomFloat(5.0f, 10.0f);
-    particle.dir = nvmath::vec3f(getRandomFloat(0.1f, 5.0f), getRandomFloat(0.1f, 5.0f), getRandomFloat(0.1f, 5.0f));
-    m_particles.push(particle);
+    //this->m_instances.push_back({ transform, objId });
+    ParticleInstance particle;
+    particle.transform = nvmath::mat4f(1);//nvmath::translation_mat4(getRandomFloat(-3.0f, 3.0f), getRandomFloat(0.0f, 3.0f), getRandomFloat(-3.0f, 3.0f));
+    particle.objIndex = objId;
+    particle.dir = nvmath::vec3f(getRandomFloat(-3.0f, 3.0f), getRandomFloat(1.0f, 3.0f), getRandomFloat(-3.0f, 3.0f));
+    particle.speed = getRandomFloat(1.0f, 10.0f);
+    this->m_instances.push_back(particle);
 }
 
 std::string HelloVulkan::getObjNameFromPath(std::string path)
@@ -733,6 +732,22 @@ void HelloVulkan::createTopLevelAS()
   m_rtBuilder.buildTlas(m_tlas, m_rqflags);
 }
 
+void HelloVulkan::updateTopLevelAS()
+{
+    unsigned int id = static_cast<unsigned int>(m_instances.size() - 1);
+
+    VkAccelerationStructureInstanceKHR rayInst{};
+    rayInst.transform = nvvk::toTransformMatrixKHR(m_instances[id].transform);  // Position of the instance
+    rayInst.instanceCustomIndex = m_instances[id].objIndex;                               // gl_InstanceCustomIndexEXT
+    rayInst.accelerationStructureReference = m_rtBuilder.getBlasDeviceAddress(m_instances[id].objIndex);
+    rayInst.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+    rayInst.mask = 0xFF;       //  Only be hit if rayMask & instance.mask != 0
+    rayInst.instanceShaderBindingTableRecordOffset = 0;  // We will use the same hit group for all objects
+    m_tlas.emplace_back(rayInst);
+    m_rqflags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
+    m_rtBuilder.buildTlas(m_tlas, m_rqflags, true);
+}
+
 void HelloVulkan::animationInstances(float time)
 {
     const auto  nbWuson = static_cast<int32_t>(m_instances.size() - 2);  // All except sphere and plane
@@ -746,6 +761,7 @@ void HelloVulkan::animationInstances(float time)
     tinst.transform = nvvk::toTransformMatrixKHR(transform);
     
     // Updating the top level acceleration structure
+    m_rqflags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
     m_rtBuilder.buildTlas(m_tlas, m_rqflags, true);
 }
 

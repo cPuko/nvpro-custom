@@ -219,6 +219,7 @@ int main(int argc, char** argv)
     {
         uint objId = helloVk.getObjectKey("sphere");
         helloVk.makeParticle(objId);
+        helloVk.updateTopLevelAS();
         frameRate = std::chrono::milliseconds(0);
     }
     frameRate += std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - lastFrame);

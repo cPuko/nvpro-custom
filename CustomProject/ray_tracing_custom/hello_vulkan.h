@@ -68,25 +68,22 @@ public:
     nvvk::Buffer matIndexBuffer;  // Device buffer of array of 'Wavefront material'
   };
 
-  struct ObjInstance
+  class ObjInstance
   {
+  public:
     nvmath::mat4f transform;    // Matrix of the instance
     uint32_t      objIndex{0};  // Model index reference
   };
 
-  class Particle
+  class ParticleInstance : public ObjInstance
   {
   public:
-      Particle() {
-          modelId = 0;
-          gravity = 0.f;
-      };
-      ~Particle() {};
-      unsigned int modelId;
-      nvmath::vec3f dir;
-      float gravity;
-  };
+      ParticleInstance() {};
+      ~ParticleInstance() {};
 
+      nvmath::vec3f dir;
+      float speed;
+  };
 
   // Information pushed at each draw call
   PushConstantRaster m_pcRaster{
@@ -101,6 +98,7 @@ public:
   std::vector<ObjModel>    m_objModel;   // Model on host
   std::vector<ObjDesc>     m_objDesc;    // Model description for device access
   std::vector<ObjInstance> m_instances;  // Scene model instances
+  std::vector<ParticleInstance> m_particleInstances;
   //std::vector<int>         m_collisionCheck;
 
 
@@ -147,6 +145,7 @@ public:
   auto objectToVkGeometryKHR(const ObjModel& model);
   void createBottomLevelAS();
   void createTopLevelAS();
+  void updateTopLevelAS();
 
   VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_rtProperties{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR};
   nvvk::RaytracingBuilderKHR                      m_rtBuilder;
@@ -177,6 +176,4 @@ public:
 
   void makeParticle(unsigned int objId);
   std::string getObjNameFromPath(std::string path);
-
-  std::queue<Particle> m_particles;
 };
