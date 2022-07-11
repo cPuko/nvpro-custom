@@ -75,10 +75,8 @@ public:
     nvmath::mat4f transform;    // Matrix of the instance
     uint32_t      objIndex{0};  // Model index reference
   public:
-      virtual void calculateTrasnform() 
-      {
-          std::cout << "Obj Instance 함수 호출" << std::endl;
-      };
+      virtual void calculateTrasnform() {};
+      virtual void SetProperties(nvmath::vec3f _dir, float _speed) {};
   };
 
   class ParticleInstance : public ObjInstance
@@ -97,8 +95,12 @@ public:
       void calculateTrasnform() override
       {
           transform = transform * nvmath::translation_mat4(dir * speed);
-          std::cout << "Particle Instance 함수 호출" << std::endl;
       };
+      void SetProperties(nvmath::vec3f _dir, float _speed) override
+      {
+          dir = _dir;
+          speed = _speed;
+      }
   };
 
   // Information pushed at each draw call

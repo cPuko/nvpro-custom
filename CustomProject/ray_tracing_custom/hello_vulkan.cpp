@@ -284,12 +284,14 @@ void HelloVulkan::makeParticle(unsigned int objId, unsigned int num)
     //this->m_instances.push_back({ transform, objId });
     for (int i = 0; i < num; ++i)
     {
-        ParticleInstance* particle = new ParticleInstance();
+        ObjInstance* particle = new ParticleInstance();
         particle->transform = nvmath::mat4f(1);//nvmath::translation_mat4(getRandomFloat(-3.0f, 3.0f), getRandomFloat(0.0f, 3.0f), getRandomFloat(-3.0f, 3.0f));
         particle->objIndex = objId;
-        particle->dir = nvmath::vec3f(getRandomFloat(-3.0f, 3.0f), getRandomFloat(1.0f, 3.0f), getRandomFloat(-3.0f, 3.0f));
-        particle->speed = getRandomFloat(1.0f, 10.0f);
-        this->m_instances.push_back(dynamic_cast<ObjInstance*>(particle));
+        nvmath::vec3f dir = nvmath::vec3f(getRandomFloat(-3.0f, 3.0f), getRandomFloat(1.0f, 3.0f), getRandomFloat(-3.0f, 3.0f));
+        float speed = getRandomFloat(0.001f, 0.005f);
+        particle->SetProperties(dir, speed);
+
+        this->m_instances.push_back(particle);
     }
 }
 
@@ -469,11 +471,11 @@ void HelloVulkan::rasterize(const VkCommandBuffer& cmdBuf)
   vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descSet, 0, nullptr);
 
 
-  for(const HelloVulkan::ObjInstance& inst : m_instances)
+  for(const HelloVulkan::ObjInstance* inst : m_instances)
   {
-    auto& model            = m_objModel[inst.objIndex];
-    m_pcRaster.objIndex    = inst.objIndex;  // Telling which object is drawn
-    m_pcRaster.modelMatrix = inst.transform;
+    auto& model            = m_objModel[inst->objIndex];
+    m_pcRaster.objIndex    = inst->objIndex;  // Telling which object is drawn
+    m_pcRaster.modelMatrix = inst->transform;
 
     vkCmdPushConstants(cmdBuf, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                        sizeof(PushConstantRaster), &m_pcRaster);
@@ -720,12 +722,12 @@ void HelloVulkan::createBottomLevelAS()
 void HelloVulkan::createTopLevelAS()
 {
   //tlas.reserve(m_instances.size());
-  for(const HelloVulkan::ObjInstance& inst : m_instances)
+  for(const HelloVulkan::ObjInstance* inst : m_instances)
   {
     VkAccelerationStructureInstanceKHR rayInst{};
-    rayInst.transform                      = nvvk::toTransformMatrixKHR(inst.transform);  // Position of the instance
-    rayInst.instanceCustomIndex            = inst.objIndex;                               // gl_InstanceCustomIndexEXT
-    rayInst.accelerationStructureReference = m_rtBuilder.getBlasDeviceAddress(inst.objIndex);
+    rayInst.transform                      = nvvk::toTransformMatrixKHR(inst->transform);  // Position of the instance
+    rayInst.instanceCustomIndex            = inst->objIndex;                               // gl_InstanceCustomIndexEXT
+    rayInst.accelerationStructureReference = m_rtBuilder.getBlasDeviceAddress(inst->objIndex);
     rayInst.flags                          = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
     rayInst.mask                           = 0xFF;       //  Only be hit if rayMask & instance.mask != 0
     rayInst.instanceShaderBindingTableRecordOffset = 0;  // We will use the same hit group for all objects
@@ -738,14 +740,15 @@ void HelloVulkan::createTopLevelAS()
 void HelloVulkan::animationInstances(unsigned int objId, float time)
 {
     unsigned int count = 0;
-    for(auto instance : m_instances)
+    for(ObjInstance* instance : m_instances)
     {
-        if (instance.objIndex == objId)
+        if (instance->objIndex == objId)
         {
             ParticleInstance* particleInstance = dynamic_cast<ParticleInstance*>(instance);
-            particleInstance.calculateTrasnform();
+            //ParticleInstance* particleInstance = (ParticleInstance*)(instance);
+            instance->calculateTrasnform();
             VkAccelerationStructureInstanceKHR& tinst = m_tlas[count];
-            tinst.transform = nvvk::toTransformMatrixKHR(particleInstance.transform);
+            tinst.transform = nvvk::toTransformMatrixKHR(instance->transform);
 
         }
         count++;
