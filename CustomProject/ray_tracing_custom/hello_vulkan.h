@@ -31,6 +31,7 @@
 
 #include <map>
 #include <queue>
+#include <iostream>
 
 //--------------------------------------------------------------------------------------------------
 // Simple rasterizer of OBJ objects
@@ -73,16 +74,31 @@ public:
   public:
     nvmath::mat4f transform;    // Matrix of the instance
     uint32_t      objIndex{0};  // Model index reference
+  public:
+      virtual void calculateTrasnform() 
+      {
+          std::cout << "Obj Instance 함수 호출" << std::endl;
+      };
   };
 
   class ParticleInstance : public ObjInstance
   {
   public:
-      ParticleInstance() {};
+      ParticleInstance() 
+      {
+          dir = nvmath::vec3f(0,0,0);
+          speed = 0.f;
+      };
       ~ParticleInstance() {};
 
       nvmath::vec3f dir;
       float speed;
+  public :
+      void calculateTrasnform() override
+      {
+          transform = transform * nvmath::translation_mat4(dir * speed);
+          std::cout << "Particle Instance 함수 호출" << std::endl;
+      };
   };
 
   // Information pushed at each draw call
@@ -97,8 +113,8 @@ public:
   // Array of objects and instances in the scene
   std::vector<ObjModel>    m_objModel;   // Model on host
   std::vector<ObjDesc>     m_objDesc;    // Model description for device access
-  std::vector<ObjInstance> m_instances;  // Scene model instances
-  std::vector<ParticleInstance> m_particleInstances;
+  std::vector<ObjInstance*> m_instances;  // Scene model instances
+  //std::vector<ParticleInstance> m_particleInstances;
   //std::vector<int>         m_collisionCheck;
 
 
@@ -145,14 +161,13 @@ public:
   auto objectToVkGeometryKHR(const ObjModel& model);
   void createBottomLevelAS();
   void createTopLevelAS();
-  void updateTopLevelAS();
 
   VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_rtProperties{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR};
   nvvk::RaytracingBuilderKHR                      m_rtBuilder;
 
   // #VK_animation
-  void animationInstances(float time);
-  void animationObject(float time);
+  void animationInstances(unsigned int objId, float time);
+  void animationObject(unsigned int objId, float time);
 
   // #VK_compute
   void createCompDescriptors();
@@ -174,6 +189,6 @@ public:
 
   uint getObjectKey(std::string key);
 
-  void makeParticle(unsigned int objId);
+  void makeParticle(unsigned int objId, unsigned int num);
   std::string getObjNameFromPath(std::string path);
 };

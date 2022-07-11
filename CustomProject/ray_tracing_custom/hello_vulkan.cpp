@@ -256,9 +256,9 @@ void HelloVulkan::loadModel(const std::string& filename, nvmath::mat4f transform
     m_debug.setObjectName(model.matIndexBuffer.buffer, (std::string("matIdx_" + objNb)));
 
     // Keeping transformation matrix of the instance
-    ObjInstance instance;
-    instance.transform = transform;
-    instance.objIndex = static_cast<uint32_t>(m_objModel.size());
+    ObjInstance* instance = new ObjInstance();
+    instance->transform = transform;
+    instance->objIndex = static_cast<uint32_t>(m_objModel.size());
     m_instances.push_back(instance);
     
     getObjNameFromPath(filename);
@@ -277,17 +277,20 @@ void HelloVulkan::loadModel(const std::string& filename, nvmath::mat4f transform
     m_objDesc.emplace_back(desc);
 }
 
-void HelloVulkan::makeParticle(unsigned int objId)
+void HelloVulkan::makeParticle(unsigned int objId, unsigned int num)
 {
     if (objId == 0)//floor
         return;
     //this->m_instances.push_back({ transform, objId });
-    ParticleInstance particle;
-    particle.transform = nvmath::mat4f(1);//nvmath::translation_mat4(getRandomFloat(-3.0f, 3.0f), getRandomFloat(0.0f, 3.0f), getRandomFloat(-3.0f, 3.0f));
-    particle.objIndex = objId;
-    particle.dir = nvmath::vec3f(getRandomFloat(-3.0f, 3.0f), getRandomFloat(1.0f, 3.0f), getRandomFloat(-3.0f, 3.0f));
-    particle.speed = getRandomFloat(1.0f, 10.0f);
-    this->m_instances.push_back(particle);
+    for (int i = 0; i < num; ++i)
+    {
+        ParticleInstance* particle = new ParticleInstance();
+        particle->transform = nvmath::mat4f(1);//nvmath::translation_mat4(getRandomFloat(-3.0f, 3.0f), getRandomFloat(0.0f, 3.0f), getRandomFloat(-3.0f, 3.0f));
+        particle->objIndex = objId;
+        particle->dir = nvmath::vec3f(getRandomFloat(-3.0f, 3.0f), getRandomFloat(1.0f, 3.0f), getRandomFloat(-3.0f, 3.0f));
+        particle->speed = getRandomFloat(1.0f, 10.0f);
+        this->m_instances.push_back(dynamic_cast<ObjInstance*>(particle));
+    }
 }
 
 std::string HelloVulkan::getObjNameFromPath(std::string path)
@@ -732,42 +735,30 @@ void HelloVulkan::createTopLevelAS()
   m_rtBuilder.buildTlas(m_tlas, m_rqflags);
 }
 
-void HelloVulkan::updateTopLevelAS()
+void HelloVulkan::animationInstances(unsigned int objId, float time)
 {
-    unsigned int id = static_cast<unsigned int>(m_instances.size() - 1);
+    unsigned int count = 0;
+    for(auto instance : m_instances)
+    {
+        if (instance.objIndex == objId)
+        {
+            ParticleInstance* particleInstance = dynamic_cast<ParticleInstance*>(instance);
+            particleInstance.calculateTrasnform();
+            VkAccelerationStructureInstanceKHR& tinst = m_tlas[count];
+            tinst.transform = nvvk::toTransformMatrixKHR(particleInstance.transform);
 
-    VkAccelerationStructureInstanceKHR rayInst{};
-    rayInst.transform = nvvk::toTransformMatrixKHR(m_instances[id].transform);  // Position of the instance
-    rayInst.instanceCustomIndex = m_instances[id].objIndex;                               // gl_InstanceCustomIndexEXT
-    rayInst.accelerationStructureReference = m_rtBuilder.getBlasDeviceAddress(m_instances[id].objIndex);
-    rayInst.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
-    rayInst.mask = 0xFF;       //  Only be hit if rayMask & instance.mask != 0
-    rayInst.instanceShaderBindingTableRecordOffset = 0;  // We will use the same hit group for all objects
-    m_tlas.emplace_back(rayInst);
-    m_rqflags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
-    m_rtBuilder.buildTlas(m_tlas, m_rqflags, true);
-}
+        }
+        count++;
+    }
 
-void HelloVulkan::animationInstances(float time)
-{
-    const auto  nbWuson = static_cast<int32_t>(m_instances.size() - 2);  // All except sphere and plane
-    const float deltaAngle = 6.28318530718f / static_cast<float>(nbWuson);
-    const float wusonLength = 3.f;
-    const float radius = wusonLength / (2.f * sin(deltaAngle / 2.0f));
-
-    auto& transform = m_instances[0].transform ;
-
-    VkAccelerationStructureInstanceKHR& tinst = m_tlas[0];
-    tinst.transform = nvvk::toTransformMatrixKHR(transform);
-    
     // Updating the top level acceleration structure
     m_rqflags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
     m_rtBuilder.buildTlas(m_tlas, m_rqflags, true);
 }
 
-void HelloVulkan::animationObject(float time)
+void HelloVulkan::animationObject(unsigned int objId, float time)
 {
-    const uint32_t sphereId = 1;//2;
+    const uint32_t sphereId = objId;
     ObjModel& model = m_objModel[sphereId];
 
     updateCompDescriptors(model.vertexBuffer);

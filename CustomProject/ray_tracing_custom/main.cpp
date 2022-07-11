@@ -150,6 +150,8 @@ int main(int argc, char** argv)
   // Creation of the example
   helloVk.loadModel(nvh::findFile("media/scenes/plane.obj", defaultSearchPaths, true));
   helloVk.loadModel(nvh::findFile("media/scenes/sphere.obj", defaultSearchPaths, true));
+  uint objId = helloVk.getObjectKey("sphere");
+  helloVk.makeParticle(objId, 100);
 
   helloVk.createOffscreenRender();
   helloVk.createDescriptorSetLayout();
@@ -206,27 +208,17 @@ int main(int argc, char** argv)
       ImGuiH::Panel::End();
     }
 
-    // #VK_animation
-    /*auto now = std::chrono::system_clock::now();
-    std::chrono::duration<double, std::milli> delta = now - lastFrame;
-    lastFrame = now;*/
-
-    //std::this_thread::sleep_until(nextFrame);
-
+    // Frame Rate
     std::chrono::duration<double, std::milli> diff = std::chrono::system_clock::now()- start;
     std::chrono::milliseconds ms{ 200 };
     if (frameRate > ms) 
-    {
-        uint objId = helloVk.getObjectKey("sphere");
-        helloVk.makeParticle(objId);
-        helloVk.updateTopLevelAS();
         frameRate = std::chrono::milliseconds(0);
-    }
     frameRate += std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - lastFrame);
     lastFrame = std::chrono::system_clock::now();
-
-    helloVk.animationObject(diff.count());
-    helloVk.animationInstances(diff.count());
+    
+    // Animation
+    helloVk.animationObject(objId, diff.count());
+    helloVk.animationInstances(objId, diff.count());
     
     // Start rendering the scene
     helloVk.prepareFrame();
