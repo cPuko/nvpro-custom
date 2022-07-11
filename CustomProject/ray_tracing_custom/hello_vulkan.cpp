@@ -215,7 +215,7 @@ static uint s_objIndex = 0;
 //--------------------------------------------------------------------------------------------------
 // Loading the OBJ file and setting up all buffers
 //
-void HelloVulkan::loadModel(const std::string& filename, nvmath::mat4f transform)
+void HelloVulkan::loadModel(const std::string& filename)
 {
     LOGI("Loading File:  %s \n", filename.c_str());
     ObjLoader loader;
@@ -254,13 +254,7 @@ void HelloVulkan::loadModel(const std::string& filename, nvmath::mat4f transform
     m_debug.setObjectName(model.indexBuffer.buffer, (std::string("index_" + objNb)));
     m_debug.setObjectName(model.matColorBuffer.buffer, (std::string("mat_" + objNb)));
     m_debug.setObjectName(model.matIndexBuffer.buffer, (std::string("matIdx_" + objNb)));
-
-    // Keeping transformation matrix of the instance
-    ObjInstance* instance = new ObjInstance();
-    instance->transform = transform;
-    instance->objIndex = static_cast<uint32_t>(m_objModel.size());
-    m_instances.push_back(instance);
-    
+        
     getObjNameFromPath(filename);
     s_objIndex++;
 
@@ -277,6 +271,15 @@ void HelloVulkan::loadModel(const std::string& filename, nvmath::mat4f transform
     m_objDesc.emplace_back(desc);
 }
 
+void HelloVulkan::makeInstance(nvmath::mat4f transform)
+{
+    // Keeping transformation matrix of the instance
+    ObjInstance* instance = new ObjInstance();
+    instance->transform = transform;
+    instance->objIndex = static_cast<uint32_t>(m_objModel.size()-1);
+    m_instances.push_back(instance);
+}
+
 void HelloVulkan::makeParticle(unsigned int objId, unsigned int num)
 {
     if (objId == 0)//floor
@@ -285,7 +288,7 @@ void HelloVulkan::makeParticle(unsigned int objId, unsigned int num)
     for (int i = 0; i < num; ++i)
     {
         ObjInstance* particle = new ParticleInstance();
-        particle->transform = nvmath::mat4f(1);//nvmath::translation_mat4(getRandomFloat(-3.0f, 3.0f), getRandomFloat(0.0f, 3.0f), getRandomFloat(-3.0f, 3.0f));
+        particle->transform = nvmath::mat4f(1) * nvmath::scale_mat4(nvmath::vec3f(0.1f, 0.1f, 0.1f));//nvmath::translation_mat4(getRandomFloat(-3.0f, 3.0f), getRandomFloat(0.0f, 3.0f), getRandomFloat(-3.0f, 3.0f));
         particle->objIndex = objId;
         nvmath::vec3f dir = nvmath::vec3f(getRandomFloat(-3.0f, 3.0f), getRandomFloat(1.0f, 3.0f), getRandomFloat(-3.0f, 3.0f));
         float speed = getRandomFloat(0.001f, 0.005f);

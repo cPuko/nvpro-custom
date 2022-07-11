@@ -149,6 +149,8 @@ int main(int argc, char** argv)
 
   // Creation of the example
   helloVk.loadModel(nvh::findFile("media/scenes/plane.obj", defaultSearchPaths, true));
+  helloVk.makeInstance();
+
   helloVk.loadModel(nvh::findFile("media/scenes/sphere.obj", defaultSearchPaths, true));
   uint objId = helloVk.getObjectKey("sphere");
   helloVk.makeParticle(objId, 100);
