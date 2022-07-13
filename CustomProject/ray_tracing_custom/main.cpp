@@ -219,8 +219,8 @@ int main(int argc, char** argv)
     lastFrame = std::chrono::system_clock::now();
     
     // Animation
-    helloVk.animationObject(objId, diff.count());
-    helloVk.animationInstances(objId, diff.count());
+    helloVk.animationObject(objId);
+    helloVk.animationInstances(objId);
     
     // Start rendering the scene
     helloVk.prepareFrame();

@@ -45,7 +45,8 @@ START_BINDING(SceneBindings)
   eObjDescs = 1,  // Access to the object descriptions
   eTextures = 2,  // Access to textures
   eTlas     = 3,   // Top-level acceleration structure
-  eCollision = 4   // Access to Collision Trigger
+  eCollision = 4,   // Access to Collision Trigger
+  eParticleDescs = 5
 END_BINDING();
 // clang-format on
 

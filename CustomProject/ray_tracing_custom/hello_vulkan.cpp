@@ -123,7 +123,7 @@ void HelloVulkan::createDescriptorSetLayout()
   m_descSetLayoutBind.addBinding(SceneBindings::eGlobals, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
                                  VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR);
   // Obj descriptions
-  m_descSetLayoutBind.addBinding(SceneBindings::ParticleDesc, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1,
+  m_descSetLayoutBind.addBinding(SceneBindings::eParticleDescs, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1,
                                  VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
   // Textures
   m_descSetLayoutBind.addBinding(SceneBindings::eTextures, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, nbTxt,
@@ -149,7 +149,7 @@ void HelloVulkan::updateDescriptorSet()
   writes.emplace_back(m_descSetLayoutBind.makeWrite(m_descSet, SceneBindings::eGlobals, &dbiUnif));
 
   VkDescriptorBufferInfo dbiSceneDesc{m_bParticles.buffer, 0, VK_WHOLE_SIZE};
-  writes.emplace_back(m_descSetLayoutBind.makeWrite(m_descSet, SceneBindings::eObjDescs, &dbiSceneDesc));
+  writes.emplace_back(m_descSetLayoutBind.makeWrite(m_descSet, SceneBindings::eParticleDescs, &dbiSceneDesc));
 
   // All texture samplers
   std::vector<VkDescriptorImageInfo> diit;
@@ -259,7 +259,7 @@ void HelloVulkan::loadModel(const std::string& filename)
     s_objIndex++;
 
     // Creating information for device access
-    ObjDesc desc;
+    ParticleDesc desc;
     desc.txtOffset = txtOffset;
     desc.vertexAddress = nvvk::getBufferDeviceAddress(m_device, model.vertexBuffer.buffer);
     desc.indexAddress = nvvk::getBufferDeviceAddress(m_device, model.indexBuffer.buffer);
@@ -268,7 +268,7 @@ void HelloVulkan::loadModel(const std::string& filename)
 
     // Keeping the obj host model and device description
     m_objModel.emplace_back(model);
-    m_objDesc.emplace_back(desc);
+    m_particleDesc.emplace_back(desc);
 }
 
 void HelloVulkan::makeInstance(nvmath::mat4f transform)
@@ -338,7 +338,7 @@ void HelloVulkan::createObjDescriptionBuffer()
   m_bParticles = m_alloc.createBuffer(cmdBuf, m_particleDesc, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
   cmdGen.submitAndWait(cmdBuf);
   m_alloc.finalizeAndReleaseStaging();
-  m_debug.setObjectName(m_bParticles.buffer, "ParticleDesc");
+  m_debug.setObjectName(m_bParticles.buffer, "ObjectDesc");
 }
 
 //--------------------------------------------------------------------------------------------------

@@ -43,6 +43,7 @@ pushc;
 layout(binding = eObjDescs, scalar) buffer ObjDesc_ { ObjDesc i[]; } objDesc;
 layout(binding = eTlas) uniform accelerationStructureEXT topLevelAS;
 layout(binding = eCollision) buffer collision { int check[]; } collisionCheck;
+layout(binding = eParticleDescs) buffer ParticleDesc_ { ParticleDesc p[]; } particleDesc;
 
 void main()
 {
