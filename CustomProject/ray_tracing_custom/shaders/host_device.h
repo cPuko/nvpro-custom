@@ -60,6 +60,18 @@ struct ObjDesc
   uint64_t materialIndexAddress;  // Address of the triangle material index buffer
 };
 
+struct ParticleDesc
+{
+	int      txtOffset;             // Texture index offset in the array of textures
+	uint64_t vertexAddress;         // Address of the Vertex buffer
+	uint64_t indexAddress;          // Address of the index buffer
+	uint64_t materialAddress;       // Address of the material buffer
+	uint64_t materialIndexAddress;  // Address of the triangle material index buffer
+	mat4	 transform;
+	vec3	 direction;
+	float speed;
+};
+
 // Uniform buffer set at each frame
 struct GlobalUniforms
 {

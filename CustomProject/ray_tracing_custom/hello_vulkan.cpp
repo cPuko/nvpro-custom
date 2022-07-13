@@ -123,7 +123,7 @@ void HelloVulkan::createDescriptorSetLayout()
   m_descSetLayoutBind.addBinding(SceneBindings::eGlobals, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
                                  VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR);
   // Obj descriptions
-  m_descSetLayoutBind.addBinding(SceneBindings::eObjDescs, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1,
+  m_descSetLayoutBind.addBinding(SceneBindings::ParticleDesc, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1,
                                  VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
   // Textures
   m_descSetLayoutBind.addBinding(SceneBindings::eTextures, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, nbTxt,
@@ -148,7 +148,7 @@ void HelloVulkan::updateDescriptorSet()
   VkDescriptorBufferInfo dbiUnif{m_bGlobals.buffer, 0, VK_WHOLE_SIZE};
   writes.emplace_back(m_descSetLayoutBind.makeWrite(m_descSet, SceneBindings::eGlobals, &dbiUnif));
 
-  VkDescriptorBufferInfo dbiSceneDesc{m_bObjDesc.buffer, 0, VK_WHOLE_SIZE};
+  VkDescriptorBufferInfo dbiSceneDesc{m_bParticles.buffer, 0, VK_WHOLE_SIZE};
   writes.emplace_back(m_descSetLayoutBind.makeWrite(m_descSet, SceneBindings::eObjDescs, &dbiSceneDesc));
 
   // All texture samplers
@@ -282,16 +282,15 @@ void HelloVulkan::makeInstance(nvmath::mat4f transform)
 
 void HelloVulkan::makeParticle(unsigned int objId, unsigned int num)
 {
-    if (objId == 0)//floor
+    if (objId == 0) // floor
         return;
-    //this->m_instances.push_back({ transform, objId });
     for (int i = 0; i < num; ++i)
     {
         ObjInstance* particle = new ParticleInstance();
         particle->transform = nvmath::mat4f(1) * nvmath::scale_mat4(nvmath::vec3f(0.1f, 0.1f, 0.1f));//nvmath::translation_mat4(getRandomFloat(-3.0f, 3.0f), getRandomFloat(0.0f, 3.0f), getRandomFloat(-3.0f, 3.0f));
         particle->objIndex = objId;
         nvmath::vec3f dir = nvmath::vec3f(getRandomFloat(-3.0f, 3.0f), getRandomFloat(1.0f, 3.0f), getRandomFloat(-3.0f, 3.0f));
-        float speed = getRandomFloat(0.001f, 0.005f);
+        float speed = getRandomFloat(0.01f, 0.05f);
         particle->SetProperties(dir, speed);
 
         this->m_instances.push_back(particle);
@@ -336,10 +335,10 @@ void HelloVulkan::createObjDescriptionBuffer()
   nvvk::CommandPool cmdGen(m_device, m_graphicsQueueIndex);
 
   auto cmdBuf = cmdGen.createCommandBuffer();
-  m_bObjDesc  = m_alloc.createBuffer(cmdBuf, m_objDesc, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+  m_bParticles = m_alloc.createBuffer(cmdBuf, m_particleDesc, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
   cmdGen.submitAndWait(cmdBuf);
   m_alloc.finalizeAndReleaseStaging();
-  m_debug.setObjectName(m_bObjDesc.buffer, "ObjDescs");
+  m_debug.setObjectName(m_bParticles.buffer, "ParticleDesc");
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -426,7 +425,7 @@ void HelloVulkan::destroyResources()
   vkDestroyDescriptorSetLayout(m_device, m_descSetLayout, nullptr);
 
   m_alloc.destroy(m_bGlobals);
-  m_alloc.destroy(m_bObjDesc);
+  m_alloc.destroy(m_bParticles);
 
   for(auto& m : m_objModel)
   {
@@ -740,7 +739,7 @@ void HelloVulkan::createTopLevelAS()
   m_rtBuilder.buildTlas(m_tlas, m_rqflags);
 }
 
-void HelloVulkan::animationInstances(unsigned int objId, float time)
+void HelloVulkan::animationInstances(unsigned int objId)
 {
     unsigned int count = 0;
     for(ObjInstance* instance : m_instances)
@@ -762,7 +761,7 @@ void HelloVulkan::animationInstances(unsigned int objId, float time)
     m_rtBuilder.buildTlas(m_tlas, m_rqflags, true);
 }
 
-void HelloVulkan::animationObject(unsigned int objId, float time)
+void HelloVulkan::animationObject(unsigned int objId)
 {
     const uint32_t sphereId = objId;
     ObjModel& model = m_objModel[sphereId];
@@ -856,6 +855,4 @@ uint HelloVulkan::getObjectKey(std::string key)
     for(auto it = m_DicObjs.begin(); it != m_DicObjs.end(); it++)
         return m_DicObjs.find(key)->second;
     return 0;
-
-    
 }

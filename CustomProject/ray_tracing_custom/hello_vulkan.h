@@ -115,7 +115,7 @@ public:
 
   // Array of objects and instances in the scene
   std::vector<ObjModel>    m_objModel;   // Model on host
-  std::vector<ObjDesc>     m_objDesc;    // Model description for device access
+  std::vector<ParticleDesc> m_particleDesc;  //Particle 
   std::vector<ObjInstance*> m_instances;  // Scene model instances
   //std::vector<ParticleInstance> m_particleInstances;
   //std::vector<int>         m_collisionCheck;
@@ -130,7 +130,7 @@ public:
   VkDescriptorSet             m_descSet;
 
   nvvk::Buffer m_bGlobals;  // Device-Host of the camera matrices
-  nvvk::Buffer m_bObjDesc;  // Device buffer of the OBJ descriptions
+  nvvk::Buffer m_bParticles;  // Device buffer of the OBJ descriptions
 
   std::vector<nvvk::Texture> m_textures;  // vector of all textures of the scene
 
@@ -169,8 +169,8 @@ public:
   nvvk::RaytracingBuilderKHR                      m_rtBuilder;
 
   // #VK_animation
-  void animationInstances(unsigned int objId, float time);
-  void animationObject(unsigned int objId, float time);
+  void animationInstances(unsigned int objId);
+  void animationObject(unsigned int objId);
 
   // #VK_compute
   void createCompDescriptors();
