@@ -123,8 +123,11 @@ void HelloVulkan::createDescriptorSetLayout()
   m_descSetLayoutBind.addBinding(SceneBindings::eGlobals, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
                                  VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR);
   // Obj descriptions
-  m_descSetLayoutBind.addBinding(SceneBindings::eParticleDescs, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1,
+  m_descSetLayoutBind.addBinding(SceneBindings::eObjDescs, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1,
                                  VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
+  // Particle descriptions
+  m_descSetLayoutBind.addBinding(SceneBindings::eParticleDescs, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1,
+       VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
   // Textures
   m_descSetLayoutBind.addBinding(SceneBindings::eTextures, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, nbTxt,
                                  VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
@@ -148,8 +151,11 @@ void HelloVulkan::updateDescriptorSet()
   VkDescriptorBufferInfo dbiUnif{m_bGlobals.buffer, 0, VK_WHOLE_SIZE};
   writes.emplace_back(m_descSetLayoutBind.makeWrite(m_descSet, SceneBindings::eGlobals, &dbiUnif));
 
-  VkDescriptorBufferInfo dbiSceneDesc{m_bParticles.buffer, 0, VK_WHOLE_SIZE};
-  writes.emplace_back(m_descSetLayoutBind.makeWrite(m_descSet, SceneBindings::eParticleDescs, &dbiSceneDesc));
+  VkDescriptorBufferInfo dbiSceneDesc{ m_bObjDesc.buffer, 0, VK_WHOLE_SIZE };
+  writes.emplace_back(m_descSetLayoutBind.makeWrite(m_descSet, SceneBindings::eObjDescs, &dbiSceneDesc));
+
+  VkDescriptorBufferInfo dbiParticleDesc{m_bParticles.buffer, 0, VK_WHOLE_SIZE};
+  writes.emplace_back(m_descSetLayoutBind.makeWrite(m_descSet, SceneBindings::eParticleDescs, &dbiParticleDesc));
 
   // All texture samplers
   std::vector<VkDescriptorImageInfo> diit;
@@ -259,16 +265,24 @@ void HelloVulkan::loadModel(const std::string& filename)
     s_objIndex++;
 
     // Creating information for device access
-    ParticleDesc desc;
+    ObjDesc desc;
     desc.txtOffset = txtOffset;
     desc.vertexAddress = nvvk::getBufferDeviceAddress(m_device, model.vertexBuffer.buffer);
     desc.indexAddress = nvvk::getBufferDeviceAddress(m_device, model.indexBuffer.buffer);
     desc.materialAddress = nvvk::getBufferDeviceAddress(m_device, model.matColorBuffer.buffer);
     desc.materialIndexAddress = nvvk::getBufferDeviceAddress(m_device, model.matIndexBuffer.buffer);
 
+    ParticleDesc particleDesc;
+    particleDesc.txtOffset = txtOffset;
+    particleDesc.vertexAddress = nvvk::getBufferDeviceAddress(m_device, model.vertexBuffer.buffer);
+    particleDesc.indexAddress = nvvk::getBufferDeviceAddress(m_device, model.indexBuffer.buffer);
+    particleDesc.materialAddress = nvvk::getBufferDeviceAddress(m_device, model.matColorBuffer.buffer);
+    particleDesc.materialIndexAddress = nvvk::getBufferDeviceAddress(m_device, model.matIndexBuffer.buffer);
+
     // Keeping the obj host model and device description
     m_objModel.emplace_back(model);
-    m_particleDesc.emplace_back(desc);
+    m_objDesc.emplace_back(desc);
+    //m_particleDesc.emplace_back(desc);
 }
 
 void HelloVulkan::makeInstance(nvmath::mat4f transform)
@@ -335,10 +349,21 @@ void HelloVulkan::createObjDescriptionBuffer()
   nvvk::CommandPool cmdGen(m_device, m_graphicsQueueIndex);
 
   auto cmdBuf = cmdGen.createCommandBuffer();
-  m_bParticles = m_alloc.createBuffer(cmdBuf, m_particleDesc, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+  m_bObjDesc = m_alloc.createBuffer(cmdBuf, m_objDesc, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
   cmdGen.submitAndWait(cmdBuf);
   m_alloc.finalizeAndReleaseStaging();
-  m_debug.setObjectName(m_bParticles.buffer, "ObjectDesc");
+  m_debug.setObjectName(m_bObjDesc.buffer, "ObjectDesc");
+}
+
+void HelloVulkan::createParticleDescriptionBuffer()
+{
+    nvvk::CommandPool cmdGen(m_device, m_graphicsQueueIndex);
+
+    auto cmdBuf = cmdGen.createCommandBuffer();
+    m_bParticles = m_alloc.createBuffer(cmdBuf, m_particleDesc, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    cmdGen.submitAndWait(cmdBuf);
+    m_alloc.finalizeAndReleaseStaging();
+    m_debug.setObjectName(m_bParticles.buffer, "ParticleDesc");
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -425,6 +450,7 @@ void HelloVulkan::destroyResources()
   vkDestroyDescriptorSetLayout(m_device, m_descSetLayout, nullptr);
 
   m_alloc.destroy(m_bGlobals);
+  m_alloc.destroy(m_bObjDesc);
   m_alloc.destroy(m_bParticles);
 
   for(auto& m : m_objModel)
