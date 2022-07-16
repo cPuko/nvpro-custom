@@ -40,6 +40,9 @@
 // - Rendering is done in an offscreen framebuffer
 // - The image of the framebuffer is displayed in post-process in a full-screen quad
 //
+
+const float gravity = 1.0f;
+
 class HelloVulkan : public nvvk::AppBaseVk
 {
 public:

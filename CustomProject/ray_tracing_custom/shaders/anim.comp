@@ -28,27 +28,19 @@
 
 #include "wavefront.glsl"
 
-layout(binding = 0, scalar) buffer Vertices_
-{
-  Vertex v[];
-}
-vertices;
-
 layout(push_constant) uniform shaderInformation
 {
-  float iTime;
+  const float gravity;
 }
 pushc;
 
-layout(binding = eObjDescs, scalar) buffer ObjDesc_ { ObjDesc i[]; } objDesc;
 layout(binding = eTlas) uniform accelerationStructureEXT topLevelAS;
-layout(binding = eCollision) buffer collision { int check[]; } collisionCheck;
 layout(binding = eParticleDescs) buffer ParticleDesc_ { ParticleDesc p[]; } particleDesc;
 
 void main()
 {
-  Vertex v0 = vertices.v[gl_GlobalInvocationID.x];
-  v0.pos.y             = v0.pos.y + pushc.iTime / 100000.0f;
+  ParticleDesc particle = particleDesc.p[gl_GlobalInvocationID.x];
+
   
   vertices.v[gl_GlobalInvocationID.x] = v0;
 }

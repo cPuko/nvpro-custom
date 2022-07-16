@@ -63,7 +63,6 @@ struct ObjDesc
 
 struct ParticleDesc
 {
-	int      txtOffset;             // Texture index offset in the array of textures
 	uint64_t vertexAddress;         // Address of the Vertex buffer
 	uint64_t indexAddress;          // Address of the index buffer
 	uint64_t materialAddress;       // Address of the material buffer

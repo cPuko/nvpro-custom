@@ -169,13 +169,7 @@ void HelloVulkan::updateDescriptorSet()
   VkWriteDescriptorSetAccelerationStructureKHR descASInfo{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR};
   descASInfo.accelerationStructureCount = 1;
   descASInfo.pAccelerationStructures    = &tlas;
-  writes.emplace_back(m_descSetLayoutBind.makeWrite(m_descSet, eTlas, &descASInfo));
-
-
-  //todo rt????
-  //std::vector<VkWriteDescriptorSet> writes;
-  //writes.emplace_back(m_rtDescSetLayoutBind.makeWrite(m_rtDescSet, RtxBindings::eTlas, &descASInfo));
-  //writes.emplace_back(m_rtDescSetLayoutBind.makeWrite(m_rtDescSet, RtxBindings::eOutImage, &imageInfo));
+  writes.emplace_back(m_descSetLayoutBind.makeWrite(m_descSet, SceneBindings::eTlas, &descASInfo));
 
   // Writing the information
   vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
@@ -272,17 +266,9 @@ void HelloVulkan::loadModel(const std::string& filename)
     desc.materialAddress = nvvk::getBufferDeviceAddress(m_device, model.matColorBuffer.buffer);
     desc.materialIndexAddress = nvvk::getBufferDeviceAddress(m_device, model.matIndexBuffer.buffer);
 
-    ParticleDesc particleDesc;
-    particleDesc.txtOffset = txtOffset;
-    particleDesc.vertexAddress = nvvk::getBufferDeviceAddress(m_device, model.vertexBuffer.buffer);
-    particleDesc.indexAddress = nvvk::getBufferDeviceAddress(m_device, model.indexBuffer.buffer);
-    particleDesc.materialAddress = nvvk::getBufferDeviceAddress(m_device, model.matColorBuffer.buffer);
-    particleDesc.materialIndexAddress = nvvk::getBufferDeviceAddress(m_device, model.matIndexBuffer.buffer);
-
     // Keeping the obj host model and device description
     m_objModel.emplace_back(model);
     m_objDesc.emplace_back(desc);
-    //m_particleDesc.emplace_back(desc);
 }
 
 void HelloVulkan::makeInstance(nvmath::mat4f transform)
@@ -307,7 +293,19 @@ void HelloVulkan::makeParticle(unsigned int objId, unsigned int num)
         float speed = getRandomFloat(0.01f, 0.05f);
         particle->SetProperties(dir, speed);
 
+        ObjModel model = m_objModel[objId];
+
+        ParticleDesc particleDesc;
+        particleDesc.vertexAddress = nvvk::getBufferDeviceAddress(m_device, model.vertexBuffer.buffer);
+        particleDesc.indexAddress = nvvk::getBufferDeviceAddress(m_device, model.indexBuffer.buffer);
+        particleDesc.materialAddress = nvvk::getBufferDeviceAddress(m_device, model.matColorBuffer.buffer);
+        particleDesc.materialIndexAddress = nvvk::getBufferDeviceAddress(m_device, model.matIndexBuffer.buffer);
+        particleDesc.transform = particle->transform;
+        particleDesc.direction = dir;
+        particleDesc.speed = speed;
+
         this->m_instances.push_back(particle);
+        m_particleDesc.emplace_back(particleDesc);
     }
 }
 
@@ -773,8 +771,8 @@ void HelloVulkan::animationInstances(unsigned int objId)
         if (instance->objIndex == objId)
         {
             ParticleInstance* particleInstance = dynamic_cast<ParticleInstance*>(instance);
-            //ParticleInstance* particleInstance = (ParticleInstance*)(instance);
-            instance->calculateTrasnform();
+            //transfer particle index
+            instance->calculateTrasnform();//->todo in anim.comp
             VkAccelerationStructureInstanceKHR& tinst = m_tlas[count];
             tinst.transform = nvvk::toTransformMatrixKHR(instance->transform);
 
@@ -787,8 +785,9 @@ void HelloVulkan::animationInstances(unsigned int objId)
     m_rtBuilder.buildTlas(m_tlas, m_rqflags, true);
 }
 
-void HelloVulkan::animationObject(unsigned int objId)
+void HelloVulkan::animationObject(unsigned int objId) 
 {
+    //vertex마다가 아닌 instance의 index마다로 변경
     const uint32_t sphereId = objId;
     ObjModel& model = m_objModel[sphereId];
 
@@ -799,8 +798,8 @@ void HelloVulkan::animationObject(unsigned int objId)
 
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_compPipeline);
     vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_compPipelineLayout, 0, 1, &m_compDescSet, 0, nullptr);
-    vkCmdPushConstants(cmdBuf, m_compPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(float), &time);
-    vkCmdDispatch(cmdBuf, model.nbVertices, 1, 1);
+    vkCmdPushConstants(cmdBuf, m_compPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(float), &gravity);
+    vkCmdDispatch(cmdBuf, m_particleDesc.size(), 1, 1);
 
     genCmdBuf.submitAndWait(cmdBuf);
     m_rtBuilder.updateBlas(sphereId, m_blas[sphereId], VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_BUILD_BIT_KHR);
@@ -812,7 +811,8 @@ void HelloVulkan::createCompDescriptors()
 
     // The top level acceleration structure
     m_compDescSetLayoutBind.addBinding(eTlas, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1, VK_SHADER_STAGE_COMPUTE_BIT);
-    m_compDescSetLayoutBind.addBinding(eCollision, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT);
+    //m_compDescSetLayoutBind.addBinding(eCollision, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT);
+    m_compDescSetLayoutBind.addBinding(eParticleDescs, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT);
 
     m_compDescSetLayout = m_compDescSetLayoutBind.createLayout(m_device);
     m_compDescPool = m_compDescSetLayoutBind.createPool(m_device, 1);
@@ -829,17 +829,11 @@ void HelloVulkan::createCompDescriptors()
     bufInfo.size = sizeof(unsigned int);
     bufInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     bufInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
-    VkBuffer compBuf;
-    auto result = vkCreateBuffer(m_device, &bufInfo, nullptr, &compBuf);
-    assert(result == VK_SUCCESS);
-
-    VkDescriptorBufferInfo compBufInfo{};
-    compBufInfo.buffer = compBuf;
-    compBufInfo.range = sizeof(compBuf);
 
     std::vector<VkWriteDescriptorSet> writes;
     writes.emplace_back(m_compDescSetLayoutBind.makeWrite(m_compDescSet, SceneBindings::eTlas, &descASInfo));
-    writes.emplace_back(m_compDescSetLayoutBind.makeWrite(m_compDescSet, SceneBindings::eCollision, &compBufInfo));
+    VkDescriptorBufferInfo dbiParticleDesc{ m_bParticles.buffer, 0, VK_WHOLE_SIZE };
+    writes.emplace_back(m_descSetLayoutBind.makeWrite(m_compDescSet, SceneBindings::eParticleDescs, &dbiParticleDesc));
     vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 }
 
