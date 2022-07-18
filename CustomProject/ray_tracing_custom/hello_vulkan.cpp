@@ -125,9 +125,9 @@ void HelloVulkan::createDescriptorSetLayout()
   // Obj descriptions
   m_descSetLayoutBind.addBinding(SceneBindings::eObjDescs, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1,
                                  VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
-  // Particle descriptions
-  m_descSetLayoutBind.addBinding(SceneBindings::eParticleDescs, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1,
-       VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
+  //// Particle descriptions
+  //m_descSetLayoutBind.addBinding(SceneBindings::eParticleDescs, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1,
+  //     VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
   // Textures
   m_descSetLayoutBind.addBinding(SceneBindings::eTextures, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, nbTxt,
                                  VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
@@ -154,8 +154,8 @@ void HelloVulkan::updateDescriptorSet()
   VkDescriptorBufferInfo dbiSceneDesc{ m_bObjDesc.buffer, 0, VK_WHOLE_SIZE };
   writes.emplace_back(m_descSetLayoutBind.makeWrite(m_descSet, SceneBindings::eObjDescs, &dbiSceneDesc));
 
-  VkDescriptorBufferInfo dbiParticleDesc{m_bParticles.buffer, 0, VK_WHOLE_SIZE};
-  writes.emplace_back(m_descSetLayoutBind.makeWrite(m_descSet, SceneBindings::eParticleDescs, &dbiParticleDesc));
+  //VkDescriptorBufferInfo dbiParticleDesc{m_bParticles.buffer, 0, VK_WHOLE_SIZE};
+  //writes.emplace_back(m_descSetLayoutBind.makeWrite(m_descSet, SceneBindings::eParticleDescs, &dbiParticleDesc));
 
   // All texture samplers
   std::vector<VkDescriptorImageInfo> diit;
@@ -287,10 +287,10 @@ void HelloVulkan::makeParticle(unsigned int objId, unsigned int num)
     for (int i = 0; i < num; ++i)
     {
         ObjInstance* particle = new ParticleInstance();
-        particle->transform = nvmath::mat4f(1) * nvmath::scale_mat4(nvmath::vec3f(0.1f, 0.1f, 0.1f));//nvmath::translation_mat4(getRandomFloat(-3.0f, 3.0f), getRandomFloat(0.0f, 3.0f), getRandomFloat(-3.0f, 3.0f));
+        particle->transform = nvmath::mat4f(1);// * nvmath::scale_mat4(nvmath::vec3f(0.1f, 0.1f, 0.1f));//nvmath::translation_mat4(getRandomFloat(-3.0f, 3.0f), getRandomFloat(0.0f, 3.0f), getRandomFloat(-3.0f, 3.0f));
         particle->objIndex = objId;
         nvmath::vec3f dir = nvmath::vec3f(getRandomFloat(-3.0f, 3.0f), getRandomFloat(1.0f, 3.0f), getRandomFloat(-3.0f, 3.0f));
-        float speed = getRandomFloat(0.01f, 0.05f);
+        float speed = 0.0001;//getRandomFloat(0.01f, 0.05f);
         particle->SetProperties(dir, speed);
 
         ObjModel model = m_objModel[objId];
@@ -777,7 +777,7 @@ void HelloVulkan::animationInstances(unsigned int objId)
         {
             ParticleInstance* particleInstance = dynamic_cast<ParticleInstance*>(instance);
             //transfer particle index
-            instance->calculateTrasnform();//->todo in anim.comp
+            //instance->calculateTrasnform();//->todo in anim.comp
             VkAccelerationStructureInstanceKHR& tinst = m_tlas[count];
             tinst.transform = nvvk::toTransformMatrixKHR(instance->transform);
 
@@ -804,9 +804,11 @@ void HelloVulkan::animationObject(unsigned int objId)
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_compPipeline);
     vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, m_compPipelineLayout, 0, 1, &m_compDescSet, 0, nullptr);
     vkCmdPushConstants(cmdBuf, m_compPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(float), &gravity);
-    vkCmdDispatch(cmdBuf, m_particleDesc.size(), 1, 1);
+    vkCmdDispatch(cmdBuf, model.nbVertices, m_particleDesc.size(), 1);
 
     genCmdBuf.submitAndWait(cmdBuf);
+
+    //apply transform
     m_rtBuilder.updateBlas(sphereId, m_blas[sphereId], VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_BUILD_BIT_KHR);
 }
 
@@ -823,30 +825,37 @@ void HelloVulkan::createCompDescriptors()
     m_compDescPool = m_compDescSetLayoutBind.createPool(m_device, 1);
     m_compDescSet = nvvk::allocateDescriptorSet(m_device, m_compDescPool, m_compDescSetLayout);
 
-    VkAccelerationStructureKHR                   tlas = m_rtBuilder.getAccelerationStructure();
-    VkWriteDescriptorSetAccelerationStructureKHR descASInfo{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR };
-    descASInfo.accelerationStructureCount = 1;
-    descASInfo.pAccelerationStructures = &tlas;
 
     //VkDescriptorImageInfo imageInfo{ {}, m_offscreenColor.descriptor.imageView, VK_IMAGE_LAYOUT_GENERAL };
-    VkBufferCreateInfo bufInfo {};
-    bufInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufInfo.size = sizeof(unsigned int);
-    bufInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-    bufInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
+    //VkBufferCreateInfo bufInfo {};
+    //bufInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    //bufInfo.size = sizeof(unsigned int);
+    //bufInfo.usage = VkBufferUsageFlagBits::VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    //bufInfo.sharingMode = VkSharingMode::VK_SHARING_MODE_EXCLUSIVE;
 
-    std::vector<VkWriteDescriptorSet> writes;
+ /*   std::vector<VkWriteDescriptorSet> writes;
     writes.emplace_back(m_compDescSetLayoutBind.makeWrite(m_compDescSet, SceneBindings::eTlas, &descASInfo));
     VkDescriptorBufferInfo dbiParticleDesc{ m_bParticles.buffer, 0, VK_WHOLE_SIZE };
-    writes.emplace_back(m_descSetLayoutBind.makeWrite(m_compDescSet, SceneBindings::eParticleDescs, &dbiParticleDesc));
-    vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
+    writes.emplace_back(m_compDescSetLayoutBind.makeWrite(m_compDescSet, SceneBindings::eParticleDescs, &dbiParticleDesc));
+    vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);*/
 }
 
 void HelloVulkan::updateCompDescriptors(nvvk::Buffer& vertex)
 {
+
     std::vector<VkWriteDescriptorSet> writes;
-    VkDescriptorBufferInfo            dbiUnif{ vertex.buffer, 0, VK_WHOLE_SIZE };
+    VkDescriptorBufferInfo dbiUnif{ vertex.buffer, 0, VK_WHOLE_SIZE };
     writes.emplace_back(m_compDescSetLayoutBind.makeWrite(m_compDescSet, 0, &dbiUnif));
+
+    VkAccelerationStructureKHR                   tlas = m_rtBuilder.getAccelerationStructure();
+    VkWriteDescriptorSetAccelerationStructureKHR descASInfo{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR };
+    descASInfo.accelerationStructureCount = 1;
+    descASInfo.pAccelerationStructures = &tlas;
+    writes.emplace_back(m_compDescSetLayoutBind.makeWrite(m_compDescSet, SceneBindings::eTlas, &descASInfo));
+
+    VkDescriptorBufferInfo dbiParticleDesc{ m_bParticles.buffer, 0, VK_WHOLE_SIZE };
+    writes.emplace_back(m_compDescSetLayoutBind.makeWrite(m_compDescSet, SceneBindings::eParticleDescs, &dbiParticleDesc));
+
     vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 }
 

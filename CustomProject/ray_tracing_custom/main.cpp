@@ -176,6 +176,7 @@ int main(int argc, char** argv)
   //animation
   helloVk.createCompDescriptors();
   helloVk.createCompPipelines();
+  helloVk.createParticleDescriptionBuffer();
 
 
   nvmath::vec4f clearColor = nvmath::vec4f(1, 1, 1, 1.00f);
