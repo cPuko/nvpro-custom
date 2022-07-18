@@ -70,6 +70,11 @@ if(USING_OPENGL)
   string(CONCAT library_name ${library_name} "_gl")
 endif()
 
+if(USING_GLM)
+  file(GLOB GLM_SOURCE glm/*.cpp glm/*.hpp glm/detail/*hpp glm/detail/*inl glm/ext/*hpp glm/ext/*inl glm/gtc/*hpp glm/gtc/*inl glm/gtc/*hpp glm/gtc/*inl glm/simd/*hpp glm/simd/*inl)
+  source_group("glm" FILES ${GLM_SOURCE})
+endif()
+
 if(USING_VULKANSDK)
   file(GLOB NVHELPERSVK_SOURCE nvvk/*.cpp nvvk/*.hpp nvvk/*.inl nvvk/*.h)
 
@@ -160,6 +165,7 @@ source_group("nvmath" FILES ${NVMATH_SOURCE})
 source_group("nvh" FILES ${NVHELPERS_SOURCE})
 source_group("nvp" FILES ${NVPWINDOW_SOURCE})
 source_group("imgui" FILES ${IMGUI_SOURCE})
+source_group("glm" FILES ${GLM_SOURCE})
 
 if(MSVC)
   add_definitions(-D_CRT_SECURE_NO_WARNINGS)
@@ -175,6 +181,7 @@ endif()
 add_library(nvpro_core STATIC 
   ${NVHELPERS_SOURCE}
   ${NVMATH_SOURCE}
+  ${GLM_SOURCE}
   ${IMGUI_SOURCE}
   ${FILEFORMATS_SOURCE}
   ${NVPWINDOW_SOURCE}

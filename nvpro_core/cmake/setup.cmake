@@ -272,6 +272,22 @@ macro(_add_package_ImGUI)
 
 endmacro()
 
+#####################################################################################
+# GLM
+#
+macro(_add_package_glm)
+  Message(STATUS "--> using package glm")
+  include_directories(${BASE_DIRECTORY}/nvpro_core/glm)
+
+  set(USING_GLM ON)
+  get_directory_property(hasParent PARENT_DIRECTORY)
+  if(hasParent)
+    set(USING_GLM ON PARENT_SCOPE) # PARENT_SCOPE important to have this variable passed to parent. Here we want to notify that something used the OpenGL package
+  endif()
+
+endmacro()
+
+
 
 #####################################################################################
 # FreeImage
