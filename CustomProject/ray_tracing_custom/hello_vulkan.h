@@ -120,8 +120,11 @@ public:
   // Array of objects and instances in the scene
   std::vector<ObjModel>    m_objModel;   // Model on host
   std::vector<ObjDesc>     m_objDesc;    // Model description for device access
-  std::vector<ParticleDesc> m_particleDesc;  //Particle 
   std::vector<ObjInstance*> m_instances;  // Scene model instances
+  //Particle 
+  std::vector<ObjModel>    m_particleModel;   
+  std::vector<ObjDesc>     m_particleDesc;
+  std::vector<ParticleInstance*> m_particles;  // particle model instances
 
 
   // Graphic pipeline

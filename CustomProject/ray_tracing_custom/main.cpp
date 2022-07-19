@@ -166,9 +166,6 @@ int main(int argc, char** argv)
   helloVk.createBottomLevelAS();
   helloVk.createTopLevelAS();
 
-  // Need the Top level AS
-  helloVk.updateDescriptorSet();
-
   helloVk.createPostDescriptor();
   helloVk.createPostPipeline();
   helloVk.updatePostDescriptorSet();
@@ -178,6 +175,8 @@ int main(int argc, char** argv)
   helloVk.createCompPipelines();
   helloVk.createParticleDescriptionBuffer();
 
+  // Need the Top level AS
+  //helloVk.updateDescriptorSet();
 
   nvmath::vec4f clearColor = nvmath::vec4f(1, 1, 1, 1.00f);
   auto          start = std::chrono::system_clock::now();
@@ -222,7 +221,8 @@ int main(int argc, char** argv)
     // Animation
     helloVk.animationObject(objId);
     helloVk.animationInstances(objId);
-    
+
+    helloVk.updateDescriptorSet();
     // Start rendering the scene
     helloVk.prepareFrame();
 
