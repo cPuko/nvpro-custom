@@ -503,6 +503,20 @@ void HelloVulkan::rasterize(const VkCommandBuffer& cmdBuf)
     vkCmdBindIndexBuffer(cmdBuf, model.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
     vkCmdDrawIndexed(cmdBuf, model.nbIndices, 1, 0, 0, 0);
   }
+
+  for (const HelloVulkan::ParticleInstance* inst : m_particles)
+  {
+      auto& model = m_objModel[inst->objIndex];
+      m_pcRaster.objIndex = inst->objIndex;  // Telling which object is drawn
+      m_pcRaster.modelMatrix = inst->transform;
+
+      vkCmdPushConstants(cmdBuf, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+          sizeof(PushConstantRaster), &m_pcRaster);
+      vkCmdBindVertexBuffers(cmdBuf, 0, 1, &model.vertexBuffer.buffer, &offset);
+      vkCmdBindIndexBuffer(cmdBuf, model.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+      vkCmdDrawIndexed(cmdBuf, model.nbIndices, 1, 0, 0, 0);
+  }
+
   m_debug.endLabel(cmdBuf);
 }
 
@@ -753,6 +767,19 @@ void HelloVulkan::createTopLevelAS()
     rayInst.instanceShaderBindingTableRecordOffset = 0;  // We will use the same hit group for all objects
     m_tlas.emplace_back(rayInst);
   }
+
+  for (const HelloVulkan::ObjInstance* inst : m_particles)
+  {
+      VkAccelerationStructureInstanceKHR rayInst{};
+      rayInst.transform = nvvk::toTransformMatrixKHR(inst->transform);  // Position of the instance
+      rayInst.instanceCustomIndex = inst->objIndex;                               // gl_InstanceCustomIndexEXT
+      rayInst.accelerationStructureReference = m_rtBuilder.getBlasDeviceAddress(inst->objIndex);
+      rayInst.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+      rayInst.mask = 0xFF;       //  Only be hit if rayMask & instance.mask != 0
+      rayInst.instanceShaderBindingTableRecordOffset = 0;  // We will use the same hit group for all objects
+      m_tlas.emplace_back(rayInst);
+  }
+
   m_rqflags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
   m_rtBuilder.buildTlas(m_tlas, m_rqflags);
 }
@@ -760,12 +787,23 @@ void HelloVulkan::createTopLevelAS()
 void HelloVulkan::animationInstances(unsigned int objId)
 {
     unsigned int count = 0;
-    for(ObjInstance* instance : m_instances)
+
+    for (ObjInstance* instance : m_instances)
+    {
+        if (instance->objIndex == objId)
+        {
+            VkAccelerationStructureInstanceKHR& tinst = m_tlas[count];
+            tinst.transform = nvvk::toTransformMatrixKHR(instance->transform);
+        }
+        count++;
+    }
+
+    for(ObjInstance* instance : m_particles)
     {
         if (instance->objIndex == objId)
         {
             //transfer particle index
-            //instance->calculateTrasnform();//->todo in anim.comp
+            instance->calculateTrasnform();//->todo in anim.comp
             VkAccelerationStructureInstanceKHR& tinst = m_tlas[count];
             tinst.transform = nvvk::toTransformMatrixKHR(instance->transform);
 

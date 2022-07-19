@@ -45,13 +45,6 @@ pushc;
 layout(binding = eTlas) uniform accelerationStructureEXT topLevelAS;
 //layout(binding = eParticleDescs) buffer ParticleDesc_ { ParticleDesc p[]; } particleDesc;
 
-mat4 translation_mat(vec3 translate)
-{
-    mat4 m = mat4(1);
-    m[3] = vec4(translate, 1);
-	return m;
-}
-
 void main()
 {
   Vertex v0 = vertices.v[gl_GlobalInvocationID.x];
