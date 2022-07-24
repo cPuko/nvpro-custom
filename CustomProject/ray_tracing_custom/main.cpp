@@ -153,7 +153,7 @@ int main(int argc, char** argv)
 
   helloVk.loadModel(nvh::findFile("media/scenes/sphere.obj", defaultSearchPaths, true));
   uint objId = helloVk.getObjectKey("sphere");
-  helloVk.makeParticle(objId, 100);
+  helloVk.makeParticle(objId, INSTANCE_COUNT);
 
   helloVk.createOffscreenRender();
   helloVk.createDescriptorSetLayout();

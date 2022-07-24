@@ -31,6 +31,11 @@ using mat4 = nvmath::mat4f;
 using uint = unsigned int;
 #endif
 
+#define VERTEX_BUFFER_BIND_ID 0
+#define INSTANCE_BUFFER_BIND_ID 1
+
+#define INSTANCE_COUNT 100
+
 // clang-format off
 #ifdef __cplusplus // Descriptor binding helper for C++ and GLSL
  #define START_BINDING(a) enum a {
