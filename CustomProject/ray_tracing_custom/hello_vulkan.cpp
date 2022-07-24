@@ -279,10 +279,10 @@ void HelloVulkan::makeParticle(unsigned int objId, unsigned int num)
     for (int i = 0; i < num; ++i)
     {
         ParticleInstance* particle = new ParticleInstance();
-        particle->transform = nvmath::mat4f(1);// * nvmath::scale_mat4(nvmath::vec3f(0.1f, 0.1f, 0.1f));//nvmath::translation_mat4(getRandomFloat(-3.0f, 3.0f), getRandomFloat(0.0f, 3.0f), getRandomFloat(-3.0f, 3.0f));
+        particle->transform = nvmath::mat4f(1) * nvmath::scale_mat4(nvmath::vec3f(0.1f, 0.1f, 0.1f));//nvmath::translation_mat4(getRandomFloat(-3.0f, 3.0f), getRandomFloat(0.0f, 3.0f), getRandomFloat(-3.0f, 3.0f));
         particle->objIndex = objId;
-        nvmath::vec3f dir = nvmath::vec3f(getRandomFloat(-3.0f, 3.0f), getRandomFloat(1.0f, 3.0f), getRandomFloat(-3.0f, 3.0f));
-        float speed = 0.0001;//getRandomFloat(0.01f, 0.05f);
+        nvmath::vec3f dir = nvmath::normalize(nvmath::vec3f(getRandomFloat(-3.0f, 3.0f), getRandomFloat(1.0f, 3.0f), getRandomFloat(-3.0f, 3.0f)));
+        float speed = getRandomFloat(0.05f, 0.2f);
         particle->SetProperties(dir, speed);
 
         ObjModel model = m_objModel[objId];
@@ -499,7 +499,7 @@ void HelloVulkan::rasterize(const VkCommandBuffer& cmdBuf)
 
     vkCmdPushConstants(cmdBuf, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                        sizeof(PushConstantRaster), &m_pcRaster);
-    vkCmdBindVertexBuffers(cmdBuf, 0, 1, &model.vertexBuffer.buffer, &offset);
+    vkCmdBindVertexBuffers(cmdBuf, VERTEX_BUFFER_BIND_ID, 1, &model.vertexBuffer.buffer, &offset);
     vkCmdBindIndexBuffer(cmdBuf, model.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
     vkCmdDrawIndexed(cmdBuf, model.nbIndices, 1, 0, 0, 0);
   }
@@ -512,7 +512,8 @@ void HelloVulkan::rasterize(const VkCommandBuffer& cmdBuf)
 
       vkCmdPushConstants(cmdBuf, m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
           sizeof(PushConstantRaster), &m_pcRaster);
-      vkCmdBindVertexBuffers(cmdBuf, 0, 1, &model.vertexBuffer.buffer, &offset);
+      vkCmdBindVertexBuffers(cmdBuf, VERTEX_BUFFER_BIND_ID, 1, &model.vertexBuffer.buffer, &offset);
+      //vkCmdBindVertexBuffers(cmdBuf, INSTANCE_BUFFER_BIND_ID, 1, &instanceBuffer.buffer, &offset);
       vkCmdBindIndexBuffer(cmdBuf, model.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
       vkCmdDrawIndexed(cmdBuf, model.nbIndices, 1, 0, 0, 0);
   }

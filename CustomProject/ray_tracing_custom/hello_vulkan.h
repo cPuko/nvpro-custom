@@ -84,21 +84,27 @@ public:
       virtual void SetProperties(nvmath::vec3f _dir, float _speed) {};
   };
 
+#define GRAVITY 0.009
+#define RESISTANCE 0.1
   class ParticleInstance : public ObjInstance
   {
   public:
       ParticleInstance() 
       {
-          dir = nvmath::vec3f(0,0,0);
+          pos = nvmath::vec4f(0, 0, 0, 1);
+          dir = nvmath::vec3f(0, 0, 0);
           speed = 0.f;
       };
       ~ParticleInstance() {};
 
       nvmath::vec3f dir;
       float speed;
+      nvmath::vec4f pos;
   public :
       void calculateTrasnform() override
       {
+          dir = dir - nvmath::vec3f(0, GRAVITY, 0); //gravity
+          dir = nvmath::normalize(dir) * (1.0f - (float)RESISTANCE);
           transform = transform * nvmath::translation_mat4(dir * speed);
       };
       void SetProperties(nvmath::vec3f _dir, float _speed) override
