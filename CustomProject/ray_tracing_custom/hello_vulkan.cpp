@@ -282,7 +282,7 @@ void HelloVulkan::makeParticle(unsigned int objId, unsigned int num)
         particle->transform = nvmath::mat4f(1) * nvmath::scale_mat4(nvmath::vec3f(0.1f, 0.1f, 0.1f));//nvmath::translation_mat4(getRandomFloat(-3.0f, 3.0f), getRandomFloat(0.0f, 3.0f), getRandomFloat(-3.0f, 3.0f));
         particle->objIndex = objId;
         nvmath::vec3f dir = nvmath::normalize(nvmath::vec3f(getRandomFloat(-3.0f, 3.0f), getRandomFloat(1.0f, 3.0f), getRandomFloat(-3.0f, 3.0f)));
-        float speed = getRandomFloat(0.05f, 0.2f);
+        float speed = getRandomFloat(0.1f, 0.5f);
         particle->SetProperties(dir, speed);
 
         ObjModel model = m_objModel[objId];
