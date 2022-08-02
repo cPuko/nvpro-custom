@@ -1,6 +1,6 @@
 # Particle System with nvpro-core
 ## build
-you can genderate project with CMakefile
+you can generate project with CMakefile
 
 CMakefile  is in 'build_all'
 
