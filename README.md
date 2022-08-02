@@ -1,4 +1,4 @@
-# Particle System using RayQuery (with nvpro-core)
+# Particle System with nvpro-core
 ## build
 you can genderate project with CMakefile
 
